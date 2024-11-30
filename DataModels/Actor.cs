@@ -19,6 +19,7 @@ public class Actor : ScriptableObject
     public string Voice;
 
     public TextAsset Prompt;
+    public GameObject Prefab;
 
     public float SpeakingRate;
     public float Pitch;

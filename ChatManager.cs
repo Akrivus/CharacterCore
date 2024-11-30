@@ -144,7 +144,7 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator AddActor(ActorContext context)
     {
-        var obj = Instantiate(prefab);
+        var obj = Instantiate(context.Actor.Prefab ?? prefab);
         obj.transform.Translate(Vector3.forward * I * 100f);
         var controller = obj.GetComponent<ActorController>();
         controller.OnActivation += SubtitlesUIManager.Instance.OnNodeActivated;
