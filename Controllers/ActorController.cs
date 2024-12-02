@@ -10,7 +10,7 @@ public class ActorController : MonoBehaviour
 
     public float TotalVolume => voice.GetAmplitude() + sound.GetAmplitude();
     public float VoiceVolume => voice.GetAmplitude();
-    public bool IsTalking => voice.isPlaying;
+    public bool IsTalking => voice.isPlaying && VoiceVolume > 0.0f;
 
     public AudioSource Voice => voice;
     public AudioSource Sound => sound;

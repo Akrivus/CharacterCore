@@ -36,6 +36,9 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private string forceEpisodeName;
 
+    [SerializeField]
+    private Transform[] spawnPoints;
+
     private bool _firstTime = true;
 
     private void Awake()
@@ -140,18 +143,18 @@ public class ChatManager : MonoBehaviour
         yield return AddActor(context);
     }
 
-    private int I = 0;
+    private static int totalActors = 0;
 
     private IEnumerator AddActor(ActorContext context)
     {
-        var obj = Instantiate(context.Actor.Prefab ?? prefab);
-        obj.transform.Translate(Vector3.forward * I * 100f);
+        var spawnPoint = spawnPoints[totalActors % spawnPoints.Length];
+        var obj = Instantiate(context.Actor.Prefab ?? prefab, spawnPoint);
         var controller = obj.GetComponent<ActorController>();
         controller.OnActivation += SubtitlesUIManager.Instance.OnNodeActivated;
         controller.Context = context;
         controller.Sentiment = context.Actor.DefaultSentiment;
         actors.Add(controller);
-        I++;
+        totalActors++;
         yield return controller.Initialize(NowPlaying);
     }
 

@@ -32,14 +32,15 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private void OnQueueTaken(Chat chat)
     {
-        _spot.enabled = chat.NewEpisode;
+        if (_spot != null)
+            _spot.enabled = chat.NewEpisode;
         ClearSubtitle();
         SetChatTitle(chat);
     }
 
     public void OnNodeActivated(ChatNode node)
     {
-        SetSubtitle(node.Actor.Title, node.Text, node.Actor.Color
+        SetSubtitle(node.Actor.Title, node.Say, node.Actor.Color
             .Lighten()
             .Lighten());
     }
@@ -68,6 +69,7 @@ public class SubtitlesUIManager : MonoBehaviour
         var prompt = chat.Idea.Prompt.Split('\n')[0];
         if (prompt.Length > 160)
             prompt = prompt.Substring(0, 160) + "...";
-        _title.text = $"<u><b>{chat.Idea.Source}</b></u> • {prompt}";
+        if (_title != null)
+            _title.text = $"<u><b>{chat.Idea.Source}</b></u> • {prompt}";
     }
 }

@@ -1,26 +1,34 @@
 ﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using UnityEngine;
+using Utilities.WebRequestRest;
 
 
 public class ChatNode
 {
     [JsonConverter(typeof(ActorConverter))]
     public Actor Actor { get; set; }
-    public string Line { get; set; }
+
     public string Text { get; set; }
     public string[] Actions { get; set; }
     public string Item { get; set; }
+
+    public string[] To { get; set; }
+    public string Say { get; set; }
+    public string Thoughts { get; set; }
+    public string Notes { get; set; }
+
     public Reaction[] Reactions { get; set; }
     public bool Async { get; set; }
     public float Delay { get; set; } = 0;
+    public int Frequency { get; set; } = 48000;
     public string AudioData { get; set; }
 
     [JsonIgnore]
     public AudioClip AudioClip
     {
-        get => AudioData.ToAudioClip();
+        get => AudioData.ToAudioClip(Frequency);
         set => AudioData = value
-            .ReSample()
             .ToBase64();
     }
 
@@ -29,11 +37,25 @@ public class ChatNode
 
     }
 
+    public ChatNode(Actor actor, Dictionary<string, string> chain)
+    {
+        Actor = actor;
+        Thoughts = chain["Thoughts"];
+        Notes = chain["Notes"];
+        Say = chain["Say"].Scrub();
+        Actions = chain["Say"].Rinse();
+
+        Text = $"Thoughts:\n{Thoughts}" +
+            $"\n\nNotes:\n{Notes}" +
+            $"\n\nSay:\n{Say}";
+        Reactions = new Reaction[0];
+    }
+
     public ChatNode(Actor actor, string text)
     {
         Actor = actor;
-        Line = text;
-        Text = text.Scrub();
+        Text = text;
+        Say = text.Scrub();
         Actions = text.Rinse();
         Reactions = new Reaction[0];
     }

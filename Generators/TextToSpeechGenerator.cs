@@ -7,9 +7,12 @@ using System.Net.Http;
 using System;
 using OpenAI.Audio;
 using OpenAI;
+using System.Linq;
 
 public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable<TTSConfigs>
 {
+    private static string[] OpenAiVoices = new string[] { "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse" };
+
     private string _googleApiKey;
     private string _openAiApiKey;
 
@@ -38,8 +41,8 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
 
     private async Task GenerateTextToSpeech(ChatNode node, int delay = 1)
     {
-        if (Enum.TryParse<SpeechVoice>(node.Actor.Voice, out var voice))
-            await GenerateWithOpenAI(node, voice);
+        if (OpenAiVoices.Contains(node.Actor.Voice))
+            await GenerateWithOpenAI(node);
         else
             await GenerateWithGoogle(node, delay);
     }
@@ -47,7 +50,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
     private async Task GenerateWithGoogle(ChatNode node, int delay = 1)
     {
         var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={_googleApiKey}";
-        var json = JsonConvert.SerializeObject(new Request(node.Text, node.Actor.Voice));
+        var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
 
         var client = new HttpClient();
         var response = await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
@@ -62,11 +65,13 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
         node.AudioData = output.AudioData;
     }
 
-    private async Task GenerateWithOpenAI(ChatNode node, SpeechVoice voice)
+    private async Task GenerateWithOpenAI(ChatNode node)
     {
-        var response = await _api.AudioEndpoint.CreateSpeechAsync(new SpeechRequest(node.Text, voice: voice));
-        var audio = response.Item2;
-        node.AudioClip = audio;
+        var response = await _api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(node.Say,
+            voice: new OpenAI.Voice(node.Actor.Voice),
+            responseFormat: SpeechResponseFormat.PCM));
+        node.Frequency = response.AudioClip.frequency;
+        node.AudioClip = response.AudioClip;
     }
 }
 

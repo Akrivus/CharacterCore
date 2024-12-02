@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
-    public event Func<Chat, Task> ContextGenerator;
+    public event Func<Chat, Task> DefaultContextGenerator;
     public event Func<Chat, Task> OnGeneration;
 
     [SerializeField]
@@ -62,7 +62,7 @@ public class ChatGenerator : MonoBehaviour
     public async Task<Chat> Generate(Idea idea)
     {
         var options = string.Join(", ", GetCharacterNames());
-        var prompt = _prompt.Format(idea.Prompt, options);
+        var prompt = _prompt.Format(idea.Prompt, options, ContextGenerator.GroundStateContext);
 
         var chat = new Chat(idea);
 
@@ -82,7 +82,7 @@ public class ChatGenerator : MonoBehaviour
 
     public async Task GenerateContext(Chat chat)
     {
-        await ContextGenerator(chat);
+        await DefaultContextGenerator(chat);
     }
 
     private static string[] _;

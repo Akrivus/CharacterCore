@@ -32,7 +32,7 @@ public class SentimentGenerator : MonoBehaviour, ISubGenerator
 
     private async Task<Reaction[]> GenerateForNode(Chat chat, ChatNode node, string[] names, string topic)
     {
-        context += string.Format("{0}: {1}\n", node.Actor.Name, node.Text);
+        context += string.Format("{0}: {1}\n", node.Actor.Name, node.Say);
         return await ParseReactions(topic, names);
     }
 

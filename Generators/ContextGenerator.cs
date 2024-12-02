@@ -7,6 +7,9 @@ using UnityEngine;
 
 public class ContextGenerator : MonoBehaviour, ISubGenerator
 {
+    public static string GroundStateContext => _groundStateContext;
+    private static string _groundStateContext;
+
     [SerializeField]
     private TextAsset _prompt;
 
@@ -26,7 +29,7 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
         LoadGroundStateContext();
 
         ChatGenerator = GetComponent<ChatGenerator>();
-        ChatGenerator.ContextGenerator += AddContext;
+        ChatGenerator.DefaultContextGenerator += AddContext;
     }
 
     private async Task AddContext(Chat chat)
@@ -57,11 +60,13 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
             File.WriteAllText("context.txt", _defaultContext.text);
         _context = File.ReadAllText("context.txt");
         _contexts = _context.Split('\n').ToList();
+        _groundStateContext = _context;
     }
 
     private void SaveGroundStateContext()
     {
         var context = string.Join("\n", _contexts.TakeLast(_contextCount));
         File.WriteAllText("context.txt", context);
+        _groundStateContext = context;
     }
 }
