@@ -10,6 +10,7 @@ public class ChatNode
     public Actor Actor { get; set; }
 
     public string Text { get; set; }
+    public string Line { get; set; }
     public string[] Actions { get; set; }
     public string Item { get; set; }
 
@@ -42,6 +43,7 @@ public class ChatNode
         Actor = actor;
         Thoughts = chain["Thoughts"];
         Notes = chain["Notes"];
+        Line = chain["Say"];
         Say = chain["Say"].Scrub();
         Actions = chain["Say"].Rinse();
 
@@ -55,6 +57,7 @@ public class ChatNode
     {
         Actor = actor;
         Text = text;
+        Line = text;
         Say = text.Scrub();
         Actions = text.Rinse();
         Reactions = new Reaction[0];

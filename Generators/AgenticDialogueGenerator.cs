@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class FreeformDialogueGenerator : MonoBehaviour, ISubGenerator
+public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
     private TextAsset _prompt;
@@ -19,6 +19,7 @@ public class FreeformDialogueGenerator : MonoBehaviour, ISubGenerator
         var agents = chat.Actors
             .Select(actor => new ChatTreeAgent(actor, _prompt, topics[actor.Name], chat.Names.Where(n => n != actor.Name).ToArray()))
             .ToDictionary(agent => agent.Actor.Name);
+        var memories = chat.Actors.ToDictionary(actor => actor.Name, actor => actor.Memories);
         var agent = agents.First().Value;
 
         int exited = 0;
@@ -29,6 +30,8 @@ public class FreeformDialogueGenerator : MonoBehaviour, ISubGenerator
         {
             var response = await agent.Respond();
             var chain = response.Parse("Thoughts", "Notes", "Say");
+
+            memories[agent.Actor.Name] += chain["Notes"] + " ";
 
             foreach (var actor in agents.Values)
                 if (!actor.IsExited)
@@ -46,6 +49,9 @@ public class FreeformDialogueGenerator : MonoBehaviour, ISubGenerator
             else
                 agent = agents[name];
         }
+
+        foreach (var m in memories)
+            chat.Actors.Get(m.Key).SaveMemories(m.Value);
 
         return chat;
     }
