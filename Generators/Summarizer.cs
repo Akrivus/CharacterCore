@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ContextGenerator : MonoBehaviour, ISubGenerator
+public class Summarizer : MonoBehaviour, ISubGenerator
 {
     public static string GroundStateContext => _groundStateContext;
     private static string _groundStateContext;
@@ -15,6 +15,9 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
 
     [SerializeField]
     private TextAsset _defaultContext;
+
+    [SerializeField]
+    private string fileName = "context.txt";
 
     [SerializeField]
     private int _contextCount = 4;
@@ -29,10 +32,10 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
         LoadGroundStateContext();
 
         ChatGenerator = GetComponent<ChatGenerator>();
-        ChatGenerator.DefaultContextGenerator += AddContext;
+        ChatGenerator.DefaultSummarizer += Summarize;
     }
 
-    private async Task AddContext(Chat chat)
+    private async Task Summarize(Chat chat)
     {
         chat.AppendContext(_context);
         chat.FinalizeContext();
@@ -42,7 +45,7 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(Chat chat)
     {
-        _contexts.Add(await ChatClient.CompleteAsync(
+        _contexts.Add(await OpenAiIntegration.CompleteAsync(
             _prompt.Format(chat.Log, _context), true));
 
         var context = string.Empty;
@@ -56,9 +59,9 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
 
     private void LoadGroundStateContext()
     {
-        if (!File.Exists("context.txt"))
-            File.WriteAllText("context.txt", _defaultContext.text);
-        _context = File.ReadAllText("context.txt");
+        if (!File.Exists(fileName))
+            File.WriteAllText(fileName, _defaultContext.text);
+        _context = File.ReadAllText(fileName);
         _contexts = _context.Split('\n').ToList();
         _groundStateContext = _context;
     }
@@ -66,7 +69,7 @@ public class ContextGenerator : MonoBehaviour, ISubGenerator
     private void SaveGroundStateContext()
     {
         var context = string.Join("\n", _contexts.TakeLast(_contextCount));
-        File.WriteAllText("context.txt", context);
+        File.WriteAllText(fileName, context);
         _groundStateContext = context;
     }
 }

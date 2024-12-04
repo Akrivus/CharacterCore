@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
-    public event Func<Chat, Task> DefaultContextGenerator;
+    public event Func<Chat, Task> DefaultSummarizer;
     public event Func<Chat, Task> OnGeneration;
 
     [SerializeField]
@@ -61,13 +61,16 @@ public class ChatGenerator : MonoBehaviour
 
     public async Task<Chat> Generate(Idea idea)
     {
-        var options = string.Join(", ", GetCharacterNames());
-        var prompt = _prompt.Format(idea.Prompt, options, ContextGenerator.GroundStateContext);
-
         var chat = new Chat(idea);
 
-        chat.Messages = await ChatClient.ChatAsync(prompt);
-        chat.Topic = chat.Messages.Last().Content.ToString();
+        if (_prompt != null)
+        {
+            var options = string.Join(", ", GetCharacterNames());
+            var prompt = _prompt.Format(idea.Prompt, options, Summarizer.GroundStateContext);
+
+            chat.Messages = await OpenAiIntegration.ChatAsync(prompt);
+            chat.Topic = chat.Messages.Last().Content.ToString();
+        }
 
         foreach (var generator in generators)
             await generator.Generate(chat);
@@ -82,7 +85,7 @@ public class ChatGenerator : MonoBehaviour
 
     public async Task GenerateContext(Chat chat)
     {
-        await DefaultContextGenerator(chat);
+        await DefaultSummarizer(chat);
     }
 
     private static string[] _;

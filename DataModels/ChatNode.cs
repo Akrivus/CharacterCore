@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 using UnityEngine;
-using Utilities.WebRequestRest;
-
 
 public class ChatNode
 {

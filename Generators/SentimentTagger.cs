@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Threading.Tasks;
 using System.Linq;
 
-public class SentimentGenerator : MonoBehaviour, ISubGenerator
+public class SentimentTagger : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
     private TextAsset _prompt;
@@ -42,7 +42,7 @@ public class SentimentGenerator : MonoBehaviour, ISubGenerator
         var options = string.Join("\n- ", names);
         var prompt = _prompt.Format(faces, options, topic, context);
 
-        var message = await ChatClient.CompleteAsync(prompt, true);
+        var message = await OpenAiIntegration.CompleteAsync(prompt, true);
         var lines = message.Parse(names);
         var reactions = new Reaction[lines.Count];
         var i = 0;

@@ -13,7 +13,7 @@ public class Chat
 
     public string FileName { get; set; }
     public string Context { get; set; }
-    public string Topic { get; set; }
+    public string Topic { get; set; } = "";
     public string TextureData { get; set; }
     public ActorContext[] Actors { get; set; }
     public List<ChatNode> Nodes { get; set; }

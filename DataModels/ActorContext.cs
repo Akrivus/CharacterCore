@@ -49,4 +49,10 @@ public class ActorContext
         var path = $"memories/{Actor.Name}.txt";
         File.WriteAllText(path, memories);
     }
+
+    public void AddMemory(string memory)
+    {
+        var memories = LoadMemories() + memory + "\n";
+        SaveMemories(memories);
+    }
 }

@@ -27,9 +27,6 @@ public class ChatManager : MonoBehaviour
         .Prepend(NowPlaying)
         .ToList();
 
-    [SerializeField]
-    private GameObject prefab;
-
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
 
@@ -72,16 +69,19 @@ public class ChatManager : MonoBehaviour
     {
         var chat = default(Chat);
         yield return new WaitUntilTimer(() => playList.TryDequeue(out chat), _firstTime ? 1 : 120);
-        _firstTime = false;
 
         if (playList.IsEmpty)
         {
             OnChatQueueEmpty?.Invoke();
             yield return RemoveAllActors();
+            _firstTime = false;
         }
 
         if (chat != null)
+        {
+            _firstTime = true;
             yield return Play(chat);
+        }
 
         yield return UpdatePlayList();
     }
@@ -148,7 +148,7 @@ public class ChatManager : MonoBehaviour
     private IEnumerator AddActor(ActorContext context)
     {
         var spawnPoint = spawnPoints[totalActors % spawnPoints.Length];
-        var obj = Instantiate(context.Actor.Prefab ?? prefab, spawnPoint);
+        var obj = Instantiate(context.Actor.Prefab, spawnPoint);
         var controller = obj.GetComponent<ActorController>();
         controller.OnActivation += SubtitlesUIManager.Instance.OnNodeActivated;
         controller.Context = context;

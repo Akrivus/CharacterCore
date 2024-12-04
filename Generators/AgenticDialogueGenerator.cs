@@ -1,6 +1,5 @@
 ﻿using OpenAI;
 using OpenAI.Chat;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,7 +18,6 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator
         var agents = chat.Actors
             .Select(actor => new ChatTreeAgent(actor, _prompt, topics[actor.Name], chat.Names.Where(n => n != actor.Name).ToArray()))
             .ToDictionary(agent => agent.Actor.Name);
-        var memories = chat.Actors.ToDictionary(actor => actor.Name, actor => actor.Memories);
         var agent = agents.First().Value;
 
         int exited = 0;
@@ -30,8 +28,6 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator
         {
             var response = await agent.Respond();
             var chain = response.Parse("Thoughts", "Notes", "Say");
-
-            memories[agent.Actor.Name] += chain["Notes"] + " ";
 
             foreach (var actor in agents.Values)
                 if (!actor.IsExited)
@@ -50,16 +46,13 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator
                 agent = agents[name];
         }
 
-        foreach (var m in memories)
-            chat.Actors.Get(m.Key).SaveMemories(m.Value);
-
         return chat;
     }
 }
 
 public class ChatTreeAgent
 {
-    public static readonly string END_TOKEN = "END_CONVERSATION";
+    public static readonly string END_TOKEN = "[TERMINATE]";
 
     public bool IsExited { get; private set; }
     public ActorContext Actor => _actor;
@@ -73,7 +66,7 @@ public class ChatTreeAgent
     public ChatTreeAgent(ActorContext actor, TextAsset prompt, string context, string[] names)
     {
         _actor = actor;
-        _prompt = prompt.Format(END_TOKEN, actor.Context, actor.Memories, context, ContextGenerator.GroundStateContext);
+        _prompt = prompt.Format(END_TOKEN, actor.Context, actor.Memories, context, Summarizer.GroundStateContext);
         _buffer = GenerateBufferSentence(names);
         _messages = new List<Message>()
         {
@@ -89,7 +82,7 @@ public class ChatTreeAgent
     public async Task<string> Respond()
     {
         _messages.Add(new Message(Role.User, _buffer));
-        _messages = await ChatClient.ChatAsync(_messages, true);
+        _messages = await OpenAiIntegration.ChatAsync(_messages, true);
 
         var response = _messages.Last().Content.ToString();
         if (response.Contains(END_TOKEN))

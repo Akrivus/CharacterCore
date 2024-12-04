@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ChatClient : MonoBehaviour, IConfigurable<OpenAIConfigs>
+public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
 {
     public static string OPENAI_API_KEY;
     public static string OPENAI_API_URI;

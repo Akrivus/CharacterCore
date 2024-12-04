@@ -22,7 +22,7 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
         await ChatGenerator.GenerateContext(chat);
 
         var prompt = _prompt.Format(chat.Topic, chat.Context);
-        var content = await ChatClient.CompleteAsync(prompt);
+        var content = await OpenAiIntegration.CompleteAsync(prompt);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var line in lines)
