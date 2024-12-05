@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Google.TTS;
 using System.Text;
 using UnityEngine;
 using System.Threading.Tasks;
@@ -73,10 +72,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
         node.Frequency = response.AudioClip.frequency;
         node.AudioClip = response.AudioClip;
     }
-}
 
-namespace Google.TTS
-{
     class Request
     {
         public TextInput input { get; set; }

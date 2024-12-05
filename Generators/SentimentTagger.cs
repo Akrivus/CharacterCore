@@ -30,13 +30,13 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         context = "";
     }
 
-    private async Task<Reaction[]> GenerateForNode(Chat chat, ChatNode node, string[] names, string topic)
+    private async Task<ChatNode.Reaction[]> GenerateForNode(Chat chat, ChatNode node, string[] names, string topic)
     {
         context += string.Format("{0}: {1}\n", node.Actor.Name, node.Say);
         return await ParseReactions(topic, names);
     }
 
-    private async Task<Reaction[]> ParseReactions(string topic, string[] names)
+    private async Task<ChatNode.Reaction[]> ParseReactions(string topic, string[] names)
     {
         var faces = string.Join(", ", Sentiment.All.Select(s => s.Name));
         var options = string.Join("\n- ", names);
@@ -44,13 +44,13 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
         var message = await OpenAiIntegration.CompleteAsync(prompt, true);
         var lines = message.Parse(names);
-        var reactions = new Reaction[lines.Count];
+        var reactions = new ChatNode.Reaction[lines.Count];
         var i = 0;
 
         foreach (var line in lines)
             if (TryParseReaction(line.Key, line.Value, out Actor actor, out Sentiment sentiment))
-                reactions[i++] = new Reaction(actor, sentiment);
-        return reactions.OfType<Reaction>().ToArray();
+                reactions[i++] = new ChatNode.Reaction(actor, sentiment);
+        return reactions.OfType<ChatNode.Reaction>().ToArray();
     }
 
     private bool TryParseReaction(string name, string text, out Actor actor, out Sentiment sentiment)

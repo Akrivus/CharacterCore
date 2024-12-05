@@ -167,44 +167,36 @@ public class OBSIntegration : MonoBehaviour, IConfigurable<OBSConfigs>
 
     private class Message<T>
     {
-        [JsonProperty("op")]
-        public int Operation { get; set; }
-
-        [JsonProperty("d")]
-        public T Data { get; set; }
+        public int op { get; set; }
+        public T d { get; set; }
 
         public Message(int op, T d)
         {
-            Operation = op;
-            Data = d;
+            this.op = op;
+            this.d = d;
         }
     }
 
     private class Request<T>
     {
-        [JsonProperty("requestType")]
-        public string Type { get; set; }
-
-        [JsonProperty("requestId")]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-
-        [JsonProperty("requestData")]
-        public T Data { get; set; }
+        public string requestType { get; set; }
+        public string requestId { get; set; } = Guid.NewGuid().ToString();
+        public T requestData { get; set; }
 
         public Request(string requestType, T requestData)
         {
-            Type = requestType;
-            Data = requestData;
+            this.requestType = requestType;
+            this.requestData = requestData;
         }
 
         public Request(string requestType)
         {
-            Type = requestType;
+            this.requestType = requestType;
         }
 
         public bool ShouldSerializeData()
         {
-            return Data != null;
+            return requestData != null;
         }
     }
 

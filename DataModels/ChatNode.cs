@@ -62,24 +62,24 @@ public class ChatNode
     }
 
     public bool ShouldSerializeItem() => !string.IsNullOrEmpty(Item);
-}
 
-public class Reaction
-{
-    [JsonConverter(typeof(ActorConverter))]
-    public Actor Actor { get; set; }
-
-    [JsonConverter(typeof(SentimentConverter))]
-    public Sentiment Sentiment { get; set; }
-
-    public Reaction()
+    public class Reaction
     {
+        [JsonConverter(typeof(ActorConverter))]
+        public Actor Actor { get; set; }
 
-    }
+        [JsonConverter(typeof(SentimentConverter))]
+        public Sentiment Sentiment { get; set; }
 
-    public Reaction(Actor actor, Sentiment sentiment)
-    {
-        Actor = actor;
-        Sentiment = sentiment ?? Sentiment.Default;
+        public Reaction()
+        {
+
+        }
+
+        public Reaction(Actor actor, Sentiment sentiment)
+        {
+            Actor = actor;
+            Sentiment = sentiment ?? Sentiment.Default;
+        }
     }
 }

@@ -46,7 +46,7 @@ public class ChatManager : MonoBehaviour
 
     private async void Start()
     {
-        Actors.Initialize();
+        Actor.SearchableList.Initialize();
         await StartPlayList();
     }
 

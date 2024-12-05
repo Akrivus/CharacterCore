@@ -28,7 +28,7 @@ public class WrittenDialogue : MonoBehaviour, ISubGenerator.Sync
                 Line = line.Text,
                 Say = line.Text.Scrub(),
                 Actions = line.Text.Rinse(),
-                Reactions = line.Reactions.Select(r => new Reaction
+                Reactions = line.Reactions.Select(r => new ChatNode.Reaction
                 {
                     Actor = r.Actor,
                     Sentiment = r.Sentiment
@@ -37,32 +37,32 @@ public class WrittenDialogue : MonoBehaviour, ISubGenerator.Sync
         chat.Nodes = nodes;
         return chat;
     }
-}
 
-[Serializable]
-public class ChatLine
-{
-    public Actor Actor;
-    public Sentiment Sentiment;
+    [Serializable]
+    public class ChatLine
+    {
+        public Actor Actor;
+        public Sentiment Sentiment;
 
-    [TextArea(1, 10)]
-    public string Text;
+        [TextArea(1, 10)]
+        public string Text;
 
-    public List<ReactLine> Reactions;
-}
+        public List<ReactLine> Reactions;
+    }
 
-[Serializable]
-public class ReactLine
-{
-    public Actor Actor;
-    public Sentiment Sentiment;
-}
+    [Serializable]
+    public class ReactLine
+    {
+        public Actor Actor;
+        public Sentiment Sentiment;
+    }
 
-[Serializable]
-public class ActorLine
-{
-    public Actor Actor;
+    [Serializable]
+    public class ActorLine
+    {
+        public Actor Actor;
 
-    [TextArea(2, 10)]
-    public string Prompt;
+        [TextArea(2, 10)]
+        public string Prompt;
+    }
 }

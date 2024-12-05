@@ -6,7 +6,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Country", menuName = "UN/Country")]
 public class Actor : ScriptableObject
 {
-    public static readonly Actors All = new Actors();
+    public static readonly SearchableList All = new SearchableList();
 
     [Header("Caption")]
     public string Title;
@@ -28,35 +28,35 @@ public class Actor : ScriptableObject
     public Sentiment DefaultSentiment;
 
     public static bool Has(string name) => All[name] != null;
-}
 
-public class Actors
-{
-    public Actor this[string name] => List.Find(actor => actor.Aliases.Contains(name));
-    public void Add(Actor actor) => List.Add(actor);
-
-    public List<Actor> List;
-
-    public Actors()
+    public class SearchableList
     {
-        List = new List<Actor>();
-    }
+        public Actor this[string name] => List.Find(actor => actor.Aliases.Contains(name));
+        public void Add(Actor actor) => List.Add(actor);
 
-    public Actors(List<ActorContext> actors)
-    {
-        List = actors.Select(actor => actor.Actor).ToList();
-    }
+        public List<Actor> List;
 
-    public static void Initialize()
-    {
-        var actors = Resources.LoadAll<Actor>("Actors");
-        foreach (var chatter in actors)
-            Actor.All.Add(chatter);
-    }
+        public SearchableList()
+        {
+            List = new List<Actor>();
+        }
 
-    public static Actor Random()
-    {
-        var index = UnityEngine.Random.Range(0, Actor.All.List.Count);
-        return Actor.All.List[index];
+        public SearchableList(List<ActorContext> actors)
+        {
+            List = actors.Select(actor => actor.Actor).ToList();
+        }
+
+        public static void Initialize()
+        {
+            var actors = Resources.LoadAll<Actor>("Actors");
+            foreach (var chatter in actors)
+                All.Add(chatter);
+        }
+
+        public static Actor Random()
+        {
+            var index = UnityEngine.Random.Range(0, All.List.Count);
+            return All.List[index];
+        }
     }
 }
