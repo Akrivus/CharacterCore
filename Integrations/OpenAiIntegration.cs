@@ -1,17 +1,19 @@
 ﻿using OpenAI;
 using OpenAI.Chat;
+using OpenAI.Embeddings;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
 public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
 {
-    public static string OPENAI_API_KEY;
-    public static string OPENAI_API_URI;
+    public static string OPENAI_API_KEY = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+    public static string OPENAI_API_URI = "https://api.openai.com";
 
-    public static string SLOW_MODEL;
-    public static string FAST_MODEL;
+    public static string SLOW_MODEL = "gpt-4o";
+    public static string FAST_MODEL = "gpt-4o-mini";
 
     public static OpenAIClient API => _api ??= new OpenAIClient(new OpenAIAuthentication(OPENAI_API_KEY), new OpenAISettings(OPENAI_API_URI));
     private static OpenAIClient _api;
@@ -53,5 +55,13 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
     {
         var messages = await ChatAsync(prompt, fast);
         return messages[messages.Count - 1].Content.ToString();
+    }
+
+    public static async Task<double[]> EmbedAsync(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return new double[0];
+        var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text));
+        return request.Data.FirstOrDefault().Embedding.ToArray();
     }
 }

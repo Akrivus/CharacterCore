@@ -10,7 +10,7 @@ public class WaitUntilTimer : CustomYieldInstruction
 
     public override bool keepWaiting => Time.time - _startTime < _duration && !_predicate();
 
-    public WaitUntilTimer(Func<bool> predicate, float duration = 30)
+    public WaitUntilTimer(Func<bool> predicate, float duration = 120)
     {
         _predicate = predicate;
         _duration = duration;

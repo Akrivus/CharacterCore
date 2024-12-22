@@ -15,6 +15,7 @@ public class Actor : ScriptableObject
     [Header("Character")]
     public string Name;
     public string[] Aliases;
+    public string[] Players;
 
     public string Voice;
 
@@ -24,6 +25,10 @@ public class Actor : ScriptableObject
     public float SpeakingRate;
     public float Pitch;
     public Color Color;
+
+    public Color Color1;
+    public Color Color2;
+    public Color Color3;
 
     public Sentiment DefaultSentiment;
 

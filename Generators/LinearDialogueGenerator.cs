@@ -8,20 +8,14 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
     [SerializeField]
     private TextAsset _prompt;
 
+    [SerializeField]
+    private string _override;
+
     private int _attempts = 0;
-
-    private ChatGenerator ChatGenerator;
-
-    private void Awake()
-    {
-        ChatGenerator = GetComponent<ChatGenerator>();
-    }
 
     public async Task<Chat> Generate(Chat chat)
     {
-        await ChatGenerator.GenerateContext(chat);
-
-        var prompt = _prompt.Format(chat.Topic, chat.Context);
+        var prompt = _prompt.Format(chat.Topic, chat.Context, _override);
         var content = await OpenAiIntegration.CompleteAsync(prompt);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
@@ -36,8 +30,7 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
                 chat.Nodes.Add(new ChatNode(actor, text));
         }
 
-        if (_attempts < 3
-            && chat.Nodes.Count < 2)
+        if (_attempts < 3 && chat.Nodes.Count < 2)
         {
             _attempts++;
             return await Generate(chat);

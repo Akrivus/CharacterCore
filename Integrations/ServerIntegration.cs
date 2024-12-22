@@ -31,6 +31,9 @@ public class ServerIntegration : MonoBehaviour
     [SerializeField]
     private ChatGenerator Generator;
 
+    [SerializeField]
+    private ChatEventBroker Broker;
+
     public bool IsRunning { get; private set; } = true;
 
     public void Awake()
@@ -38,6 +41,9 @@ public class ServerIntegration : MonoBehaviour
         if (_instance != null)
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         _instance = this;
+
+        AddRoute("POST", $"/chat", (_) => ProcessBodyString(_, s => Broker.RecieveAsync(s, false, true)));
+        AddRoute("GET", "/", (_) => ProcessFileRequest(_, "chat.html"));
 
         AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => Generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));

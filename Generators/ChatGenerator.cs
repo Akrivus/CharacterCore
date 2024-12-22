@@ -7,11 +7,15 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
-    public event Func<Chat, Task> DefaultSummarizer;
     public event Func<Chat, Task> OnGeneration;
+
+    public bool DisableLock { get; set; }
 
     [SerializeField]
     private TextAsset _prompt;
+
+    [SerializeField]
+    private string chatType;
 
     private string slug => name.Replace(' ', '-').ToLower();
 
@@ -33,7 +37,7 @@ public class ChatGenerator : MonoBehaviour
 
         if (idea != null)
         {
-            var task = Generate(idea);
+            var task = GenerateAndSave(idea);
             yield return new WaitUntilTimer(() => task.IsCompleted, 1800);
             var chat = task.Result;
 
@@ -59,14 +63,30 @@ public class ChatGenerator : MonoBehaviour
         AddIdeaToQueue(new Idea(prompt));
     }
 
-    public async Task<Chat> Generate(Idea idea)
+    public async Task<Chat> GenerateAndSave(Idea idea)
     {
-        var chat = new Chat(idea);
+        var chat = await Generate(new Chat(idea));
 
+        if (OnGeneration != null)
+            await OnGeneration(chat);
+        chat.Type = chatType;
+
+        if (!DisableLock)
+        {
+            chat.Lock();
+            chat.Save();
+        }
+        DisableLock = false;
+
+        return chat;
+    }
+
+    public async Task<Chat> Generate(Chat chat)
+    {
         if (_prompt != null)
         {
             var options = string.Join(", ", GetCharacterNames());
-            var prompt = _prompt.Format(idea.Prompt, options, Summarizer.GroundStateContext);
+            var prompt = _prompt.Format(chat.Idea.Prompt, options, Summarizer.GroundState);
 
             chat.Messages = await OpenAiIntegration.ChatAsync(prompt);
             chat.Topic = chat.Messages.Last().Content.ToString();
@@ -75,17 +95,12 @@ public class ChatGenerator : MonoBehaviour
         foreach (var generator in generators)
             await generator.Generate(chat);
 
-        if (OnGeneration != null)
-            await OnGeneration(chat);
-
-        chat.Lock();
-        chat.Save();
         return chat;
     }
 
-    public async Task GenerateContext(Chat chat)
+    public void Receive(string message)
     {
-        await DefaultSummarizer(chat);
+        AddIdeaToQueue(new Idea(message));
     }
 
     private static string[] _;

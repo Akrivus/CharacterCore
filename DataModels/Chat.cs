@@ -14,6 +14,7 @@ public class Chat
     public string FileName { get; set; }
     public string Context { get; set; }
     public string Topic { get; set; } = "";
+    public string Type { get; set; } = "";
     public string TextureData { get; set; }
     public ActorContext[] Actors { get; set; }
     public List<ChatNode> Nodes { get; set; }
@@ -56,6 +57,11 @@ public class Chat
         _locked = false;
     }
 
+    public Chat(string prompt) : this(new Idea(prompt))
+    {
+
+    }
+
     public Chat()
     {
         _locked = true;
@@ -78,6 +84,8 @@ public class Chat
             AppendContext(actor.Context);
         Context = Context.Trim();
     }
+
+    public ChatNode NextNode => Nodes.FirstOrDefault(n => n.New);
 
     public async void Save()
     {

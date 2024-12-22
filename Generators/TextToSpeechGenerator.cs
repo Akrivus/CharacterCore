@@ -34,19 +34,20 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
     public async Task<Chat> Generate(Chat chat)
     {
         foreach (var node in chat.Nodes)
-            await GenerateTextToSpeech(node);
+            if (node.AudioData == null)
+                await GenerateTextToSpeech(node);
         return chat;
     }
 
-    private async Task GenerateTextToSpeech(ChatNode node, int delay = 1)
+    public async Task GenerateTextToSpeech(ChatNode node)
     {
         if (OpenAiVoices.Contains(node.Actor.Voice))
             await GenerateWithOpenAI(node);
         else
-            await GenerateWithGoogle(node, delay);
+            await GenerateWithGoogle(node);
     }
 
-    private async Task GenerateWithGoogle(ChatNode node, int delay = 1)
+    private async Task GenerateWithGoogle(ChatNode node)
     {
         var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={_googleApiKey}";
         var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
@@ -55,13 +56,15 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
         var response = await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
         if (!response.IsSuccessStatusCode)
         {
-            await Task.Delay(delay * 1000);
-            await GenerateTextToSpeech(node, ++delay);
+            await Task.Delay(1000);
+            await GenerateTextToSpeech(node);
         }
 
         var text = await response.Content.ReadAsStringAsync();
         var output = JsonConvert.DeserializeObject<Output>(text);
         node.AudioData = output.AudioData;
+
+        node.New = true;
     }
 
     private async Task GenerateWithOpenAI(ChatNode node)
@@ -71,6 +74,8 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
             responseFormat: SpeechResponseFormat.PCM));
         node.Frequency = response.AudioClip.frequency;
         node.AudioClip = response.AudioClip;
+
+        node.New = true;
     }
 
     class Request

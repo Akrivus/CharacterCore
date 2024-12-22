@@ -28,6 +28,9 @@ public class FolderIntegration : MonoBehaviour, IConfigurable<FolderConfigs>
         AutoPlay = c.AutoPlay;
         AutoPlayOnEmpty = c.AutoPlayOnEmpty;
 
+        if (MaxReplayAgeInMinutes < 1)
+            MaxReplayAgeInMinutes = 1440 * 365;
+
         replays = LoadReplays();
 
         Chat.FolderName = ReplayDirectory;

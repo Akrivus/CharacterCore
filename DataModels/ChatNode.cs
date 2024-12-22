@@ -31,6 +31,9 @@ public class ChatNode
             .ToBase64();
     }
 
+    [JsonIgnore]
+    public bool New { get; set; }
+
     public ChatNode()
     {
 
@@ -59,6 +62,12 @@ public class ChatNode
         Say = text.Scrub();
         Actions = text.Rinse();
         Reactions = new Reaction[0];
+    }
+
+    public ChatNode MarkAsync()
+    {
+        Async = true;
+        return this;
     }
 
     public bool ShouldSerializeItem() => !string.IsNullOrEmpty(Item);

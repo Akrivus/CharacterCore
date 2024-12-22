@@ -12,6 +12,8 @@ public class ActorController : MonoBehaviour
     public float VoiceVolume => voice.GetAmplitude();
     public bool IsTalking => voice.isPlaying && VoiceVolume > 0.0f;
 
+    public float ScreenOrder => _screenOrder + _totalTalkTime + (IsTalking ? 1 : 0);
+
     public AudioSource Voice => voice;
     public AudioSource Sound => sound;
 
@@ -22,6 +24,12 @@ public class ActorController : MonoBehaviour
 
     [SerializeField]
     private AudioSource sound;
+
+    [SerializeField]
+    private float delay = 1.2f;
+
+    private float _screenOrder;
+    private float _totalTalkTime;
 
     public ActorContext Context
     {
@@ -63,6 +71,12 @@ public class ActorController : MonoBehaviour
         sub_Exits = GetComponents<ISubExits>();
     }
 
+    private void Update()
+    {
+        if (IsTalking || _totalTalkTime <= 0) return;
+        _totalTalkTime -= Time.deltaTime / delay;
+    }
+
     public void OnUpdateActorCallbacks(ActorContext context)
     {
         foreach (var subActor in sub_Actor)
@@ -91,16 +105,20 @@ public class ActorController : MonoBehaviour
         voice.clip = clip;
         voice.Play();
 
+        var time = clip.length * voice.pitch;
+        _totalTalkTime += time;
+
         if (!node.Async)
             yield return new WaitUntilTimer(() => !voice.isPlaying,
-                voice.clip.length * voice.pitch);
+                time * delay);
     }
 
     public IEnumerator Initialize(Chat chat)
     {
+        _screenOrder = Array.IndexOf(chat.Names, Context.Name);
         foreach (var sub in sub_Chats)
             sub.Initialize(chat);
-        yield return new WaitForSeconds(UnityEngine.Random.Range(1f, 3f));
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));
     }
 
     public IEnumerator Deactivate()
@@ -108,6 +126,6 @@ public class ActorController : MonoBehaviour
         foreach (var sub in sub_Exits)
             sub.Deactivate();
         Destroy(gameObject);
-        yield return new WaitForSeconds(UnityEngine.Random.Range(1f, 3f));
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));
     }
 }

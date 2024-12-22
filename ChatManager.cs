@@ -36,6 +36,9 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private Transform[] spawnPoints;
 
+    [SerializeField]
+    private Actor narrator;
+
     private bool _firstTime = true;
 
     private void Awake()
@@ -88,13 +91,25 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator Play(Chat chat)
     {
-        if (!chat.IsLocked || chat.Nodes.Count < 2)
+        if (chat.IsLocked && chat.Nodes.Count < 2)
             yield break;
         OnChatQueueTaken?.Invoke(chat);
         yield return Initialize(chat);
+        yield return PlayChat(chat);
+    }
 
-        foreach (var node in chat.Nodes)
-            yield return Activate(node);
+    private IEnumerator PlayChat(Chat chat)
+    {
+        if (chat.NextNode == null && !chat.IsLocked)
+            yield return new WaitUntilTimer(() => chat.NextNode != null);
+        
+        var node = chat.NextNode;
+        if (node == null)
+            yield break;
+        yield return Activate(node);
+
+        node.New = false;
+        yield return PlayChat(chat);
     }
 
     private IEnumerator Initialize(Chat chat)
@@ -103,7 +118,10 @@ public class ChatManager : MonoBehaviour
 
         NowPlaying = chat;
 
-        var incoming = chat.Actors.Where(a => !actors.Select(ac => ac.Actor).Contains(a.Actor));
+        var incoming = chat.Actors
+            .Prepend(new ActorContext(narrator))
+            .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Actor));
+
         foreach (var context in incoming)
             yield return AddActor(context);
 
@@ -117,7 +135,9 @@ public class ChatManager : MonoBehaviour
         OnChatNodeActivated?.Invoke(node);
 
         var actor = actors.Get(node.Actor);
-        if (actor == null) yield break;
+        if (actor == null)
+            actor = actors.Get(narrator);
+
         yield return actor.Activate(node);
 
         yield return SetActorReactions(node);
@@ -147,6 +167,9 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator AddActor(ActorContext context)
     {
+        if (context == null)
+            yield break;
+
         var spawnPoint = spawnPoints[totalActors % spawnPoints.Length];
         var obj = Instantiate(context.Actor.Prefab, spawnPoint);
         var controller = obj.GetComponent<ActorController>();
@@ -160,8 +183,7 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator TryRemoveActors(Chat chat)
     {
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0.5f, 1.5f));
-        StartCoroutine(RemoveActors(chat));
+        yield return RemoveActors(chat);
     }
 
     private IEnumerator RemoveActors(Chat chat)
@@ -181,7 +203,6 @@ public class ChatManager : MonoBehaviour
         for (var i = 0; i < actors.Count; i++)
         {
             var actor = actors[i];
-            yield return new WaitForSeconds(UnityEngine.Random.Range(0.5f, 1.5f));
             yield return actor.Deactivate();
             actors.Remove(actor);
         }

@@ -18,6 +18,7 @@ public static class AudioExtensions
 
     public static AudioClip ToAudioClip(this string data, int frequency = 48000)
     {
+        if (data == null) return null;
         var bytes = Convert.FromBase64String(data);
         var samples = new float[bytes.Length / 2];
         for (int i = 0; i < samples.Length; i++)

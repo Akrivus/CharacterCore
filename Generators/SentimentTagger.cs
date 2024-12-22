@@ -15,7 +15,8 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         var topic = chat.Topic;
 
         foreach (var node in chat.Nodes)
-            node.Reactions = await GenerateForNode(chat, node, names, topic);
+            if (node.Reactions == null || node.Reactions.Length == 0)
+                await GenerateForNode(node, names, topic);
         await GenerateForChat(chat, names, topic);
         
         return chat;
@@ -30,10 +31,10 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         context = "";
     }
 
-    private async Task<ChatNode.Reaction[]> GenerateForNode(Chat chat, ChatNode node, string[] names, string topic)
+    public async Task GenerateForNode(ChatNode node, string[] names, string topic)
     {
         context += string.Format("{0}: {1}\n", node.Actor.Name, node.Say);
-        return await ParseReactions(topic, names);
+        node.Reactions = await ParseReactions(topic, names);
     }
 
     private async Task<ChatNode.Reaction[]> ParseReactions(string topic, string[] names)

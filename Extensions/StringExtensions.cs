@@ -32,7 +32,10 @@ public static class StringExtensions
     public static string[] FindAll(this string str, params string[] keys)
     {
         var results = keys
-            .Select(key => Regex.Match(str, $@"^[#_*\s]*{key}[:*_\s]*(.*)").Groups[1].Value)
+            .Select(key => Regex.Match(str, $@"^[#_*\s]*{key}[:*_\s]*(.*)", RegexOptions.Multiline)
+                .Groups[1]
+                .Value
+                .Trim())
             .ToArray();
         if (results.Length != 0)
             return new string[0];
@@ -42,7 +45,13 @@ public static class StringExtensions
 
     public static string Find(this string str, string key)
     {
-        return FindAll(str, key).FirstOrDefault() ?? string.Empty;
+        var regex = new Regex($@"^[#_*\s]*{key}[:*_\s]*(.*)", RegexOptions.Multiline);
+        if (regex.IsMatch(str))
+            return regex.Match(str)
+                .Groups[1]
+                .Value
+                .Trim();
+        return string.Empty;
     }
 
     public static Dictionary<string, string> Parse(this string prompt, params string[] sections)
