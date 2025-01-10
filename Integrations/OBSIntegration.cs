@@ -42,9 +42,9 @@ public class OBSIntegration : MonoBehaviour, IConfigurable<OBSConfigs>
         if (IsRecording)
         {
             if (OnlyNewEpisodes)
-                ChatManager.Instance.OnChatQueueTaken += StopOrStartRecording;
+                ChatManager.Instance.AfterIntermission += StopOrStartRecording;
             if (DoSplitRecording)
-                ChatManager.Instance.OnChatQueueTaken += SplitRecording;
+                ChatManager.Instance.BeforeIntermission += SplitRecording;
             ChatManager.Instance.OnChatQueueEmpty += CheckEmptyQueue;
             ChatManager.Instance.BeforeIntermission += StartRecording;
         }
@@ -98,7 +98,7 @@ public class OBSIntegration : MonoBehaviour, IConfigurable<OBSConfigs>
             StopRecording();
     }
 
-    public void SplitRecording(Chat _)
+    public void SplitRecording()
     {
         if (!isObsRecording)
             return;

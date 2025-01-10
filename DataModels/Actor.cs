@@ -6,7 +6,8 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Country", menuName = "UN/Country")]
 public class Actor : ScriptableObject
 {
-    public static readonly SearchableList All = new SearchableList();
+    public static SearchableList All => _all;
+    private static SearchableList _all = new SearchableList();
 
     [Header("Caption")]
     public string Title;
@@ -18,6 +19,7 @@ public class Actor : ScriptableObject
     public string[] Players;
 
     public string Voice;
+    public string ColorScheme;
 
     public TextAsset Prompt;
     public GameObject Prefab;
@@ -48,7 +50,7 @@ public class Actor : ScriptableObject
 
         public SearchableList(List<ActorContext> actors)
         {
-            List = actors.Select(actor => actor.Actor).ToList();
+            List = actors.Select(actor => actor.Reference).ToList();
         }
 
         public static void Initialize()

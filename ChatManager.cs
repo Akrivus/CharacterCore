@@ -11,15 +11,21 @@ public class ChatManager : MonoBehaviour
     public static ChatManager Instance => _instance ?? (_instance = FindObjectOfType<ChatManager>());
     private static ChatManager _instance;
 
-    public event Action BeforeIntermission;
-    public event Func<Chat, IEnumerator> OnIntermission;
-
-    public event Action<Chat> OnChatQueueAdded;
-    public event Action<Chat> OnChatQueueTaken;
-
-    public event Action<ChatNode> OnChatNodeActivated;
 
     public event Action OnChatQueueEmpty;
+    public event Action<Chat> OnChatQueueAdded;
+
+    public event Func<Chat, IEnumerator> OnChatQueueTaken;
+
+    public event Func<Chat, IEnumerator> OnIntermission;
+
+    public event Action BeforeIntermission;
+    public event Action<Chat> AfterIntermission;
+
+    public event Action<Chat, ActorController> OnActorAdded;
+    public event Action<Chat, ActorController> OnActorRemoved;
+
+    public event Action<ChatNode> OnChatNodeActivated;
 
     public Chat NowPlaying { get; private set; }
     public List<Chat> PlayList => playList
@@ -51,6 +57,11 @@ public class ChatManager : MonoBehaviour
     {
         Actor.SearchableList.Initialize();
         await StartPlayList();
+    }
+
+    public void ForceRemoveAllActors()
+    {
+        StartCoroutine(RemoveAllActors());
     }
 
     public void AddToPlayList(Chat chat)
@@ -93,7 +104,10 @@ public class ChatManager : MonoBehaviour
     {
         if (chat.IsLocked && chat.Nodes.Count < 2)
             yield break;
-        OnChatQueueTaken?.Invoke(chat);
+
+        if (OnChatQueueTaken != null)
+            yield return OnChatQueueTaken(chat);
+
         yield return Initialize(chat);
         yield return PlayChat(chat);
     }
@@ -114,19 +128,24 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator Initialize(Chat chat)
     {
-        yield return TryRemoveActors(chat);
+        yield return RemoveActors(chat);
 
         NowPlaying = chat;
 
         var incoming = chat.Actors
             .Prepend(new ActorContext(narrator))
-            .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Actor));
+            .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var context in incoming)
             yield return AddActor(context);
 
+        foreach (var ac in actors)
+            if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
+                ac.Sentiment = chat.Actors.Get(ac.Actor).Sentiment;
+
         BeforeIntermission?.Invoke();
         yield return OnIntermission?.Invoke(chat);
+        AfterIntermission?.Invoke(chat);
     }
 
     private IEnumerator Activate(ChatNode node)
@@ -137,7 +156,6 @@ public class ChatManager : MonoBehaviour
         var actor = actors.Get(node.Actor);
         if (actor == null)
             actor = actors.Get(narrator);
-
         yield return actor.Activate(node);
 
         yield return SetActorReactions(node);
@@ -163,48 +181,42 @@ public class ChatManager : MonoBehaviour
         yield return AddActor(context);
     }
 
-    private static int totalActors = 0;
-
     private IEnumerator AddActor(ActorContext context)
     {
         if (context == null)
             yield break;
 
-        var spawnPoint = spawnPoints[totalActors % spawnPoints.Length];
-        var obj = Instantiate(context.Actor.Prefab, spawnPoint);
-        var controller = obj.GetComponent<ActorController>();
-        controller.OnActivation += SubtitlesUIManager.Instance.OnNodeActivated;
-        controller.Context = context;
-        controller.Sentiment = context.Actor.DefaultSentiment;
-        actors.Add(controller);
-        totalActors++;
-        yield return controller.Initialize(NowPlaying);
-    }
+        var obj = Instantiate(context.Reference.Prefab);
 
-    private IEnumerator TryRemoveActors(Chat chat)
-    {
-        yield return RemoveActors(chat);
+        var controller = obj.GetComponent<ActorController>();
+        controller.Context = context;
+        controller.Sentiment = context.Reference.DefaultSentiment;
+
+        actors.Add(controller);
+        yield return controller.Initialize(NowPlaying);
+        OnActorAdded?.Invoke(NowPlaying, controller);
     }
 
     private IEnumerator RemoveActors(Chat chat)
     {
         var outgoing = actors
-            .Where(a => !chat.Actors.Select(ac => ac.Actor).Contains(a.Actor))
-            .ToList();
-        for (var i = 0; i < outgoing.Count(); i++)
-            yield return outgoing
-                .ElementAt(i)
-                .Deactivate();
-        actors.RemoveAll(a => outgoing.Contains(a));
+            .Where(a => !chat.Actors.Select(ac => ac.Reference).Contains(a.Actor))
+            .ToArray();
+        foreach (var actor in outgoing)
+            yield return RemoveActor(actor);
     }
 
     private IEnumerator RemoveAllActors()
     {
-        for (var i = 0; i < actors.Count; i++)
-        {
-            var actor = actors[i];
-            yield return actor.Deactivate();
-            actors.Remove(actor);
-        }
+        var outgoing = actors.ToArray();
+        foreach (var actor in outgoing)
+            yield return RemoveActor(actor);
+    }
+
+    private IEnumerator RemoveActor(ActorController controller)
+    {
+        yield return controller.Deactivate();
+        actors.Remove(controller);
+        OnActorRemoved?.Invoke(NowPlaying, controller);
     }
 }

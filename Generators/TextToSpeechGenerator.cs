@@ -8,27 +8,16 @@ using OpenAI.Audio;
 using OpenAI;
 using System.Linq;
 
-public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable<TTSConfigs>
+public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 {
     private static string[] OpenAiVoices = new string[] { "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse" };
 
-    private string _googleApiKey;
-    private string _openAiApiKey;
-
-    private OpenAIClient _api;
-
-    public void Configure(TTSConfigs config)
-    {
-        _googleApiKey = config.GoogleApiKey;
-        _openAiApiKey = config.OpenAiApiKey;
-
-        if (!string.IsNullOrEmpty(_openAiApiKey))
-            _api = new OpenAIClient(new OpenAIAuthentication(_openAiApiKey));
-    }
+    private static OpenAIClient _api;
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(TTSConfigs), "tts", (config) => Configure((TTSConfigs) config));
+        if (!string.IsNullOrEmpty(TTSIntegration.OpenAiApiKey))
+            _api = new OpenAIClient(new OpenAIAuthentication(TTSIntegration.OpenAiApiKey));
     }
 
     public async Task<Chat> Generate(Chat chat)
@@ -49,7 +38,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator, IConfigurable
 
     private async Task GenerateWithGoogle(ChatNode node)
     {
-        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={_googleApiKey}";
+        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
         var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
 
         var client = new HttpClient();

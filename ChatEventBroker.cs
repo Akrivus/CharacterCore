@@ -42,7 +42,7 @@ public class ChatEventBroker : MonoBehaviour
 
     private void Start()
     {
-        ChatManager.Instance.OnChatQueueTaken += async (c) => await Generate(c);
+        ChatManager.Instance.AfterIntermission += RunSubGenerators;
     }
 
     private void Update()
@@ -93,15 +93,25 @@ public class ChatEventBroker : MonoBehaviour
             return;
         chat.Lock();
         chat = null;
+        StopAllCoroutines();
     }
 
-    private async Task Generate(Chat chat)
+    private void RunSubGenerators(Chat chat)
+    {
+        StartCoroutine(ConnectSubGenerators(chat));
+    }
+
+    private IEnumerator ConnectSubGenerators(Chat chat)
     {
         if (chat == null || chat.IsLocked)
-            return;
+            yield break;
         this.chat = chat;
+
         foreach (var g in generators)
-            await g.Generate(chat);
+        {
+            var task = g.Generate(chat);
+            yield return new WaitUntil(() => task.IsCompleted);
+        }
     }
 
     public class Event

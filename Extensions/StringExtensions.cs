@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public static class StringExtensions
 {
-    private static readonly Regex regex = new Regex(@"([*(\[]([^[\])*]+)[\])*])");
+    private static readonly Regex actionRegex = new Regex(@"^([*(\[]([^[\])*]+)[\])*])");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.!?—'’]");
+    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])\s+");
 
     public static string Chomp(this string str)
     {
@@ -18,13 +21,23 @@ public static class StringExtensions
     {
         var chr = str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSurrogate(c)).ToArray();
         str = string.Join("", chr);
-        str = regex.Replace(str, string.Empty);
+        str = actionRegex.Replace(str, string.Empty);
+        str = symbolRegex.Replace(str, string.Empty);
         return str.Trim();
+    }
+
+    public static string[] ToSentences(this string str)
+    {
+        var sentences = sentenceSplitter.Split(str);
+        return sentences
+            .Select(s => Regex.Replace(s.Trim().Scrub(), @"\s{2,}", " "))
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToArray();
     }
 
     public static string[] Rinse(this string str)
     {
-        return regex.Matches(str)
+        return actionRegex.Matches(str)
             .Select(match => match.Groups[2].Value)
             .ToArray();
     }
@@ -92,7 +105,10 @@ public static class StringExtensions
 
     public static string Format(this TextAsset str, params object[] args)
     {
-        return string.Format(str.text, args);
+        var text = str.text;
+        for (var i = 0; i < args.Length; ++i)
+            text = text.Replace("{" + i + "}", args[i].ToString());
+        return text;
     }
 
     public static string ToFileSafeString(this string str)
@@ -101,5 +117,21 @@ public static class StringExtensions
         return string.Join("-", str.Split(Path.GetInvalidFileNameChars()))
             .Replace(' ', '-')
             .ToLower();
+    }
+
+    public static async Task<Dictionary<string, string>> ExtractSet(this TextAsset textAsset, string[] names, string context, string[] set = null)
+    {
+        if (set == null)
+            set = names;
+        var prompt = textAsset.Format(string.Join("\n- ", names), context);
+        var message = await OpenAiIntegration.CompleteAsync(prompt, true);
+
+        var lines = message.Parse(set);
+
+        return lines
+            .Where(line => set.Contains(line.Key))
+            .ToDictionary(
+                line => line.Key,
+                line => line.Value);
     }
 }

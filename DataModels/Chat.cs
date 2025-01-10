@@ -14,11 +14,13 @@ public class Chat
     public string FileName { get; set; }
     public string Context { get; set; }
     public string Topic { get; set; } = "";
-    public string Type { get; set; } = "";
+    public string Location { get; set; } = "";
     public string TextureData { get; set; }
     public ActorContext[] Actors { get; set; }
     public List<ChatNode> Nodes { get; set; }
     public Idea Idea { get; set; }
+    public string[] Cues { get; set; }
+    public string EndingTrigger { get; set; }
 
     [JsonIgnore]
     public Texture2D Texture
@@ -39,7 +41,7 @@ public class Chat
     private bool _new;
 
     [JsonIgnore]
-    public string Log => string.Join("\n", Nodes.Select(n => $"{n.Actor.Name}: {n.Text}"));
+    public string Log => string.Join("\n", Nodes.Select(n => $"{n.Actor.Name}: {n.Say}"));
 
     [JsonIgnore]
     public string[] Names => Actors.Select(a => a.Name).ToArray();

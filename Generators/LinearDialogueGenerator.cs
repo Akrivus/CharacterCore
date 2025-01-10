@@ -15,6 +15,8 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(Chat chat)
     {
+        if (chat == null || chat.IsLocked)
+            return chat;
         var prompt = _prompt.Format(chat.Topic, chat.Context, _override);
         var content = await OpenAiIntegration.CompleteAsync(prompt);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);

@@ -39,7 +39,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
     private async Task<ChatNode.Reaction[]> ParseReactions(string topic, string[] names)
     {
-        var faces = string.Join(", ", Sentiment.All.Select(s => s.Name));
+        var faces = string.Join("\n- ", Sentiment.All.Select(s => s.Name));
         var options = string.Join("\n- ", names);
         var prompt = _prompt.Format(faces, options, topic, context);
 

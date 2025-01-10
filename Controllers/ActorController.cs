@@ -41,11 +41,11 @@ public class ActorController : MonoBehaviour
         }
     }
 
-    public Actor Actor => Context.Actor;
+    public Actor Actor => Context.Reference;
 
     public Sentiment Sentiment
     {
-        get => _sentiment;
+        get => _sentiment ?? Actor.DefaultSentiment;
         set
         {
             _sentiment = value;
@@ -109,8 +109,7 @@ public class ActorController : MonoBehaviour
         _totalTalkTime += time;
 
         if (!node.Async)
-            yield return new WaitUntilTimer(() => !voice.isPlaying,
-                time * delay);
+            yield return new WaitUntilTimer(() => !voice.isPlaying, time);
     }
 
     public IEnumerator Initialize(Chat chat)

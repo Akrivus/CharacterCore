@@ -42,9 +42,6 @@ public class ServerIntegration : MonoBehaviour
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         _instance = this;
 
-        AddRoute("POST", $"/chat", (_) => ProcessBodyString(_, s => Broker.RecieveAsync(s, false, true)));
-        AddRoute("GET", "/", (_) => ProcessFileRequest(_, "chat.html"));
-
         AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => Generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));
     }
@@ -53,6 +50,7 @@ public class ServerIntegration : MonoBehaviour
     {
         listener = new HttpListener();
         listener.Prefixes.Add($"http://{GetLocalIPAddress()}:8080/");
+        listener.Prefixes.Add($"http://localhost:8080/");
         thread = new Thread(Listen);
         thread.Start();
     }

@@ -34,16 +34,24 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
     public static async Task<List<Message>> ChatAsync(List<Message> messages, bool fast = false)
     {
-        Debug.Log(messages[messages.Count - 1].Content);
-        var model = fast ? FAST_MODEL : SLOW_MODEL;
-        var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
-        var response = request.FirstChoice;
-        if (response.FinishReason != "stop")
-            throw new Exception(response.FinishDetails);
-        messages.Add(response.Message);
+        try
+        {
+            Debug.Log(messages[messages.Count - 1].Content);
+            var model = fast ? FAST_MODEL : SLOW_MODEL;
+            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+            var response = request.FirstChoice;
+            if (response.FinishReason != "stop")
+                throw new Exception(response.FinishDetails);
+            messages.Add(response.Message);
 
-        Debug.Log(response.Message.Content);
-        return messages;
+            Debug.Log(response.Message.Content);
+            return messages;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+            return new List<Message>();
+        }
     }
 
     public static async Task<List<Message>> ChatAsync(string prompt, bool fast = false)

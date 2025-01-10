@@ -1,6 +1,7 @@
 ﻿using OpenAI;
 using OpenAI.Chat;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,34 +26,70 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
     private bool _stopUntilSilent;
 
     [SerializeField]
-    private RedditIntegrator reddit;
+    private bool _stopUntilBackedUp;
 
     private Dictionary<string, DialogueAgent> agents = new Dictionary<string, DialogueAgent>();
 
+    private SentimentTagger _sentiment;
+    private MemoryManager _memories;
     private TextToSpeechGenerator _tts;
-    private SentimentTagger _stg;
+
+    private Queue<ChatNode> AddNodeQueue = new Queue<ChatNode>();
 
     private bool _recieved;
+    private Coroutine _coroutine;
 
     private void Awake()
     {
+        _sentiment = GetComponent<SentimentTagger>();
+        _memories = GetComponent<MemoryManager>();
         _tts = GetComponent<TextToSpeechGenerator>();
-        _stg = GetComponent<SentimentTagger>();
 
         OnNodeGenerated += async (chat, node) =>
         {
+            await _sentiment.GenerateForNode(node, chat.Names, chat.Topic);
+            await _memories.Memorize(node);
             await _tts.GenerateTextToSpeech(node);
-            await _stg.GenerateForNode(node, chat.Names, chat.Topic);
         };
+        ChatManager.Instance.AfterIntermission += StartNodeQueue;
+        ChatManager.Instance.BeforeIntermission += StopNodeQueue;
+    }
+
+    private void StartNodeQueue(Chat chat)
+    {
+        _coroutine = StartCoroutine(UpdateNodeQueue(chat));
+    }
+
+    private void StopNodeQueue()
+    {
+        if (_coroutine != null)
+            StopCoroutine(_coroutine);
+    }
+
+    private IEnumerator UpdateNodeQueue(Chat chat)
+    {
+        if (chat == null || chat.IsLocked)
+            yield break;
+
+        yield return new WaitUntil(() => AddNodeQueue.Count > 0);
+
+        var node = AddNodeQueue.Dequeue();
+        chat.Nodes.Add(node);
+        yield return OnNodeGenerated(chat, node);
+
+        yield return UpdateNodeQueue(chat);
     }
 
     public async Task<Chat> Generate(Chat chat)
     {
-        var topic = chat.Topic.Find("Topic") ?? chat.Topic;
-        var topics = chat.Topic.Parse(chat.Names);
+        var topic = chat.Topic;
+        var topics = topic.Parse(chat.Names);
+
+        chat.Topic = topic.Find("Activity") ?? topic;
+
         agents = chat.Actors
-            .Select(actor => new DialogueAgent(
-                actor, _prompt, $"{topic}\n\n{topics[actor.Name]}",
+            .Select(actor => new DialogueAgent(actor, _prompt,
+                string.Join("\n\n", chat.Topic, topics[actor.Name]),
                 chat.Names.Where(n => n != actor.Name).ToArray()))
             .ToDictionary(agent => agent.Actor.Name);
         if (agents.Count == 0)
@@ -60,24 +97,31 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
         foreach (var a in agents.Values)
         {
-            if (reddit != null)
-                await a.Reddit(reddit);
             await a.Memorize();
             a.FinalizePrompt();
         }
 
+        var cues = new Queue<string>(chat.Cues);
+
         var order = new Queue<string>();
-        var names = chat.Names.Shuffle();
-        foreach (var name in names)
-            order.Enqueue(name);
+        var names = chat.Names;
 
         var i = 0;
 
-        while (!chat.IsLocked && i < MaxTurns && (MinTurns < i || order.Count > 0))
+        while (!chat.IsLocked && i < MaxTurns && (MinTurns < i || cues.Count > 0 || order.Count > 0) && Application.isPlaying)
         {
             if (_stopUntilRecieved)
-                while (!_recieved)
+                while (!_recieved && Application.isPlaying)
                     await Task.Delay(100);
+
+            if (order.Count == 0 && cues.TryDequeue(out var cue))
+                foreach (var key in chat.Names)
+                {
+                    var actor = agents[key];
+                    if (actor.IsExited)
+                        continue;
+                    actor.AddToBuffer(cue);
+                }
 
             var name = chat.Names.Random();
             if (order.Count > 0)
@@ -85,45 +129,58 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
             var agent = agents[name];
             var response = await agent.Respond();
             var chain = response.Parse("Thoughts", "Notes", "Say");
+            var message = chain["Say"];
 
-            foreach (var key in order)
+            foreach (var key in chat.Names)
             {
                 var actor = agents[key];
                 if (actor.IsExited)
                     continue;
-                actor.AddToBuffer(agent.Actor.Name, chain["Say"]);
+                actor.AddToBuffer(agent.Actor.Name, message);
             }
 
-            var node = new ChatNode(agent.Actor.Actor, chain);
-            chat.Nodes.Add(node);
-            await OnNodeGenerated(chat, node);
+            AddNodes(agent.Actor.Reference, chain, message.ToSentences());
 
             var actors = chat.Names
                 .Where(n => !agents[n].IsExited);
             if (actors.Count() < 2)
                 break;
             var aliases = actors
-                .Select(n => agents[n].Actor.Actor.Aliases)
+                .Select(n => agents[n].Actor.Reference.Aliases)
                 .SelectMany(a => a)
                 .ToArray();
             names = aliases
-                .Where(n => node.Say.Contains(n))
-                .OrderBy(n => node.Say.IndexOf(n))
+                .Where(n => message.Contains(n))
+                .OrderBy(n => message.IndexOf(n))
                 .Select(n => Actor.All[n].Name)
                 .Distinct()
                 .ToArray();
-            foreach (var n in names)
-                order.Enqueue(n);
+            if (names.Length > 0)
+                order = new Queue<string>(names);
             ++i;
 
             _recieved = false;
 
             if (_stopUntilSilent)
-                while (chat.NextNode != null)
+                while (chat.NextNode != null && Application.isPlaying)
+                    await Task.Delay(100);
+
+            if (_stopUntilBackedUp)
+                while (chat.NextNode == null && Application.isPlaying)
                     await Task.Delay(100);
         }
 
         return chat;
+    }
+
+    private void AddNodes(Actor actor, Dictionary<string, string> chain, string[] sentences)
+    {
+        AddNodeQueue.Enqueue(new ChatNode(actor, chain, sentences[0]));
+
+        if (sentences.Length == 1)
+            return;
+        for (var _ = 1; _ < sentences.Length; _++)
+            AddNodeQueue.Enqueue(new ChatNode(actor, sentences[_]));
     }
 
     public void Receive(string message, bool initialOnly = true)
@@ -132,7 +189,7 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
             return;
         
         foreach (var agent in agents.Values)
-            agent.AddToBuffer(name, message);
+            agent.AddToBuffer(message);
         _recieved = true;
     }
 
@@ -163,12 +220,6 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
             return this;
         }
 
-        public async Task<DialogueAgent> Reddit(RedditIntegrator reddit)
-        {
-            Prompt = await reddit.ReplaceSubReddits(Prompt);
-            return this;
-        }
-
         public void FinalizePrompt()
         {
             _messages = new List<Message>()
@@ -180,6 +231,11 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
         public void AddToBuffer(string name, string text)
         {
             _buffer += name + ": " + text + "\n\n";
+        }
+
+        public void AddToBuffer(string text)
+        {
+            _buffer += text + "\n\n";
         }
 
         public async Task<string> Respond()

@@ -3,20 +3,22 @@
 public class ActorContext
 {
     [JsonConverter(typeof(ActorConverter))]
-    public Actor Actor { get; set; }
+    public Actor Reference { get; set; }
 
     [JsonConverter(typeof(SentimentConverter))]
     public Sentiment Sentiment { get; set; }
 
+    public string Costume { get; set; }
     public string Item { get; set; }
     public string SoundGroup { get; set; }
+    public string SpawnPoint { get; set; }
     
     [JsonIgnore]
-    public string Name => Actor.Name;
+    public string Name => Reference.Name;
 
     public ActorContext(Actor actor)
     {
-        Actor = actor;
+        Reference = actor;
     }
 
     public ActorContext()
@@ -25,5 +27,5 @@ public class ActorContext
     }
 
     [JsonIgnore]
-    public string Context => Actor.Prompt.text;
+    public string Context => Reference.Prompt.text;
 }

@@ -15,7 +15,7 @@ public class ChatGenerator : MonoBehaviour
     private TextAsset _prompt;
 
     [SerializeField]
-    private string chatType;
+    private Actor[] _actors;
 
     private string slug => name.Replace(' ', '-').ToLower();
 
@@ -26,6 +26,7 @@ public class ChatGenerator : MonoBehaviour
 
     private void Awake()
     {
+        _actors = _actors.Length > 0 ? _actors : Actor.All.List.ToArray();
         StartCoroutine(UpdateQueue());
         ServerIntegration.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
@@ -38,7 +39,7 @@ public class ChatGenerator : MonoBehaviour
         if (idea != null)
         {
             var task = GenerateAndSave(idea);
-            yield return new WaitUntilTimer(() => task.IsCompleted, 1800);
+            yield return new WaitUntilTimer(() => task.IsCompleted);
             var chat = task.Result;
 
             ChatManager.Instance.AddToPlayList(chat);
@@ -65,11 +66,19 @@ public class ChatGenerator : MonoBehaviour
 
     public async Task<Chat> GenerateAndSave(Idea idea)
     {
-        var chat = await Generate(new Chat(idea));
+        var chat = new Chat(idea);
+
+        try
+        {
+            chat = await Generate(chat);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e);
+        }
 
         if (OnGeneration != null)
             await OnGeneration(chat);
-        chat.Type = chatType;
 
         if (!DisableLock)
         {
@@ -88,12 +97,13 @@ public class ChatGenerator : MonoBehaviour
             var options = string.Join(", ", GetCharacterNames());
             var prompt = _prompt.Format(chat.Idea.Prompt, options, Summarizer.GroundState);
 
+            chat.Context = Summarizer.GroundState;
             chat.Messages = await OpenAiIntegration.ChatAsync(prompt);
             chat.Topic = chat.Messages.Last().Content.ToString();
         }
 
-        foreach (var generator in generators)
-            await generator.Generate(chat);
+        foreach (var g in generators)
+            await g.Generate(chat);
 
         return chat;
     }
@@ -107,6 +117,6 @@ public class ChatGenerator : MonoBehaviour
 
     private string[] GetCharacterNames()
     {
-        return _ ??= Actor.All.List.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).ToArray();
+        return _ ??= _actors.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).ToArray();
     }
 }

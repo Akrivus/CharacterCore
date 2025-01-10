@@ -39,14 +39,14 @@ public class ChatNode
 
     }
 
-    public ChatNode(Actor actor, Dictionary<string, string> chain)
+    public ChatNode(Actor actor, Dictionary<string, string> chain, string say)
     {
         Actor = actor;
         Thoughts = chain["Thoughts"];
         Notes = chain["Notes"];
         Line = chain["Say"];
-        Say = chain["Say"].Scrub();
-        Actions = chain["Say"].Rinse();
+        Say = say.Scrub();
+        Actions = say.Rinse();
 
         Text = $"Thoughts:\n{Thoughts}" +
             $"\n\nNotes:\n{Notes}" +
@@ -58,7 +58,6 @@ public class ChatNode
     {
         Actor = actor;
         Text = text;
-        Line = text;
         Say = text.Scrub();
         Actions = text.Rinse();
         Reactions = new Reaction[0];
