@@ -6,9 +6,9 @@ public class VoiceController : AutoActor, ISubNode
     public void Activate(ChatNode node)
     {
         var reaction = node.Reactions.FirstOrDefault(r => r.Actor == Actor);
-        var score = reaction?.Sentiment.Score ?? 0.0f;
-        var pitch = score / 12.5f + 1.0f;
-        var volume = score / 5.0f + 1.0f;
+        var score = (reaction?.Sentiment.Score ?? 0f) / 15f;
+        var pitch = score + 1f;
+        var volume = Mathf.Abs(score) * 3f + 1f;
 
         ActorController.Voice.pitch = pitch;
         ActorController.Voice.volume = volume;
