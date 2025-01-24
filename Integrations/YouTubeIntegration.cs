@@ -8,7 +8,7 @@ using System.IO;
 
 public class YouTubeIntegration : MonoBehaviour, IConfigurable<YouTubeConfigs>
 {
-    public static YouTubeIntegration Instance => _instance ?? (_instance = FindObjectOfType<YouTubeIntegration>());
+    public static YouTubeIntegration Instance => _instance ?? (_instance = FindFirstObjectByType<YouTubeIntegration>());
     private static YouTubeIntegration _instance;
 
     private string accessToken;

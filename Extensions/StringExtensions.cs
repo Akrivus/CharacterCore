@@ -29,10 +29,13 @@ public static class StringExtensions
     public static string[] ToSentences(this string str)
     {
         var sentences = sentenceSplitter.Split(str);
-        return sentences
+        sentences = sentences
             .Select(s => Regex.Replace(s.Trim().Scrub(), @"\s{2,}", " "))
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToArray();
+        if (sentences.Length == 0)
+            sentences = new string[] { str };   
+        return sentences;
     }
 
     public static string[] Rinse(this string str)

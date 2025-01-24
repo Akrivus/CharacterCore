@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using static ISubGenerator;
 
 public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventReceiver
 {
@@ -39,11 +40,17 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
     private bool _recieved;
     private Coroutine _coroutine;
 
+    private bool _async;
+
     private void Awake()
     {
         _sentiment = GetComponent<SentimentTagger>();
         _memories = GetComponent<MemoryManager>();
         _tts = GetComponent<TextToSpeechGenerator>();
+
+        _async = GetComponent<ChatEventBroker>() != null;
+
+        if (!_async) return;
 
         OnNodeGenerated += async (chat, node) =>
         {
@@ -110,9 +117,17 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
         while (!chat.IsLocked && i < MaxTurns && (MinTurns < i || cues.Count > 0 || order.Count > 0) && Application.isPlaying)
         {
-            if (_stopUntilRecieved)
-                while (!_recieved && Application.isPlaying)
-                    await Task.Delay(100);
+            while (_stopUntilRecieved && !_recieved && Application.isPlaying)
+                await Task.Delay(100);
+
+            var actors = chat.Names
+                .Where(n => !agents[n].IsExited);
+            if (actors.Count() < 2)
+                break;
+            var aliases = actors
+                .Select(n => agents[n].Actor.Reference.Aliases)
+                .SelectMany(a => a)
+                .ToArray();
 
             if (order.Count == 0 && cues.TryDequeue(out var cue))
                 foreach (var key in chat.Names)
@@ -121,6 +136,14 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
                     if (actor.IsExited)
                         continue;
                     actor.AddToBuffer(cue);
+                    names = aliases
+                        .Where(n => cue.Contains(n))
+                        .OrderBy(n => cue.IndexOf(n))
+                        .Select(n => Actor.All[n].Name)
+                        .Distinct()
+                        .ToArray();
+                    if (names.Length > 0)
+                        order = new Queue<string>(names);
                 }
 
             var name = chat.Names.Random();
@@ -141,14 +164,9 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
             AddNodes(agent.Actor.Reference, chain, message.ToSentences());
 
-            var actors = chat.Names
-                .Where(n => !agents[n].IsExited);
-            if (actors.Count() < 2)
-                break;
-            var aliases = actors
-                .Select(n => agents[n].Actor.Reference.Aliases)
-                .SelectMany(a => a)
-                .ToArray();
+            while (!_async && AddNodeQueue.TryDequeue(out var node))
+                chat.Nodes.Add(node);
+
             names = aliases
                 .Where(n => message.Contains(n))
                 .OrderBy(n => message.IndexOf(n))
@@ -161,13 +179,11 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
             _recieved = false;
 
-            if (_stopUntilSilent)
-                while (chat.NextNode != null && Application.isPlaying)
-                    await Task.Delay(100);
+            while (_stopUntilSilent && chat.NextNode != null && Application.isPlaying)
+                await Task.Delay(100);
 
-            if (_stopUntilBackedUp)
-                while (chat.NextNode == null && Application.isPlaying)
-                    await Task.Delay(100);
+            while (_stopUntilBackedUp && chat.NextNode == null && Application.isPlaying)
+                await Task.Delay(100);
         }
 
         return chat;
@@ -175,12 +191,11 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
     private void AddNodes(Actor actor, Dictionary<string, string> chain, string[] sentences)
     {
-        AddNodeQueue.Enqueue(new ChatNode(actor, chain, sentences[0]));
-
-        if (sentences.Length == 1)
-            return;
-        for (var _ = 1; _ < sentences.Length; _++)
-            AddNodeQueue.Enqueue(new ChatNode(actor, sentences[_]));
+        for (int _ = 0; _ < sentences.Length; _++)
+            if (_ == 0)
+                AddNodeQueue.Enqueue(new ChatNode(actor, chain, sentences[_]));
+            else
+                AddNodeQueue.Enqueue(new ChatNode(actor, sentences[_]));    
     }
 
     public void Receive(string message, bool initialOnly = true)

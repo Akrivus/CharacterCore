@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class ChatManager : MonoBehaviour
 {
-    public static ChatManager Instance => _instance ?? (_instance = FindObjectOfType<ChatManager>());
+    public static ChatManager Instance => _instance ?? (_instance = FindFirstObjectByType<ChatManager>());
     private static ChatManager _instance;
 
 
@@ -55,6 +55,7 @@ public class ChatManager : MonoBehaviour
 
     private async void Start()
     {
+        DontDestroyOnLoad(gameObject);
         Actor.SearchableList.Initialize();
         await StartPlayList();
     }
@@ -186,7 +187,8 @@ public class ChatManager : MonoBehaviour
         if (context == null)
             yield break;
 
-        var obj = Instantiate(context.Reference.Prefab);
+        var spawnPoint = spawnPoints.FirstOrDefault(s => s.childCount == 0);
+        var obj = Instantiate(context.Reference.Prefab, spawnPoint);
 
         var controller = obj.GetComponent<ActorController>();
         controller.Context = context;

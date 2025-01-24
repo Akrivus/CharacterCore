@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class ConfigManager : MonoBehaviour
 {
-    public static ConfigManager Instance => _instance ??= FindObjectOfType<ConfigManager>();
+    public static ConfigManager Instance => _instance ??= FindFirstObjectByType<ConfigManager>();
     private static ConfigManager _instance;
 
     public string ConfigPath = "config.json";

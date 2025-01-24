@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class LocationManager : MonoBehaviour
 {
-    public static LocationManager Instance => _instance ?? (_instance = FindObjectOfType<LocationManager>());
+    public static LocationManager Instance => _instance ?? (_instance = FindFirstObjectByType<LocationManager>());
     private static LocationManager _instance;
 
     public LocationDefinition[] Locations;

@@ -13,7 +13,7 @@ using UnityEngine;
 
 public class ServerIntegration : MonoBehaviour
 {
-    public static ServerIntegration Instance => _instance ?? (_instance = FindObjectOfType<ServerIntegration>());
+    public static ServerIntegration Instance => _instance ?? (_instance = FindFirstObjectByType<ServerIntegration>());
     private static ServerIntegration _instance;
 
     static Dictionary<string, Dictionary<string, Action<HttpListenerContext>>> routes = new Dictionary<string, Dictionary<string, Action<HttpListenerContext>>>()

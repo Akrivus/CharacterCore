@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SubtitlesUIManager : MonoBehaviour
 {
-    public static SubtitlesUIManager Instance => _instance ?? (_instance = FindObjectOfType<SubtitlesUIManager>());
+    public static SubtitlesUIManager Instance => _instance ?? (_instance = FindFirstObjectByType<SubtitlesUIManager>());
     private static SubtitlesUIManager _instance;
 
     [SerializeField]
