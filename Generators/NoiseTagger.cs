@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class BackgroundNoiseGenerator : MonoBehaviour, ISubGenerator
+public class NoiseTagger : MonoBehaviour, ISubGenerator
 {
     public static string[] SoundGroups;
 
@@ -24,20 +24,19 @@ public class BackgroundNoiseGenerator : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(Chat chat)
     {
         var names = chat.Names;
-        var topic = chat.Topic;
 
-        var soundGroups = await SelectSoundGroup(chat, names, topic);
+        var soundGroups = await SelectSoundGroup(chat, names);
         foreach (var s in soundGroups)
             chat.Actors.Get(s.Key.Reference).SoundGroup = s.Value;
 
         return chat;
     }
 
-    private async Task<Dictionary<ActorContext, string>> SelectSoundGroup(Chat chat, string[] names, string topic)
+    private async Task<Dictionary<ActorContext, string>> SelectSoundGroup(Chat chat, string[] names)
     {
         var options = string.Join(", ", SoundGroups);
         var characters = string.Join("\n- ", names);
-        var prompt = _prompt.Format(options, characters, topic);
+        var prompt = _prompt.Format(options, characters, chat.Log);
         var message = await OpenAiIntegration.CompleteAsync(prompt, true);
 
         var lines = message.Parse(names);

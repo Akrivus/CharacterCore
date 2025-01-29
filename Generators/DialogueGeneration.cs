@@ -3,13 +3,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
+public class DialogueGeneration : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
     private TextAsset _prompt;
-
-    [SerializeField]
-    private string _override;
 
     private int _attempts = 0;
 
@@ -17,8 +14,8 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
     {
         if (chat == null || chat.IsLocked)
             return chat;
-        var prompt = _prompt.Format(chat.Topic, chat.Context, _override);
-        var content = await OpenAiIntegration.CompleteAsync(prompt);
+        var prompt = _prompt.Format(chat.Idea.Prompt, chat.Characters, chat.Context);
+        var content = await OpenAiIntegration.CompleteAsync(prompt, false);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var line in lines)
@@ -26,10 +23,12 @@ public class LinearDialogueGenerator : MonoBehaviour, ISubGenerator
             var parts = line.Split(':');
             var name = parts[0];
             var text = string.Join(":", parts.Skip(1));
+            var sentences = text.ToSentences();
 
             var actor = ActorConverter.Find(name);
             if (actor != null)
-                chat.Nodes.Add(new ChatNode(actor, text));
+                foreach (var sentence in sentences)
+                    chat.Nodes.Add(new ChatNode(actor, sentence));
         }
 
         if (_attempts < 3 && chat.Nodes.Count < 2)

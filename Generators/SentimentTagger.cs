@@ -7,41 +7,40 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     [SerializeField]
     private TextAsset _prompt;
 
-    private string context = "";
+    private string log = "";
 
     public async Task<Chat> Generate(Chat chat)
     {
         var names = chat.Names;
-        var topic = chat.Topic;
 
         foreach (var node in chat.Nodes)
             if (node.Reactions == null || node.Reactions.Length == 0)
-                await GenerateForNode(node, names, topic);
-        await GenerateForChat(chat, names, topic);
+                await GenerateForNode(node, names);
+        await GenerateForChat(chat, names, chat.Context);
         
         return chat;
     }
 
-    private async Task GenerateForChat(Chat chat, string[] names, string topic)
+    private async Task GenerateForChat(Chat chat, string[] names, string context)
     {
-        context = "Use the context to generate the initial emotional states of our characters.";
-        var reactions = await ParseReactions(topic, names);
+        log = context;
+        var reactions = await ParseReactions(names);
         foreach (var reaction in reactions)
             chat.Actors.Get(reaction.Actor).Sentiment = reaction.Sentiment;
-        context = "";
+        log = "";
     }
 
-    public async Task GenerateForNode(ChatNode node, string[] names, string topic)
+    public async Task GenerateForNode(ChatNode node, string[] names)
     {
-        context += string.Format("{0}: {1}\n", node.Actor.Name, node.Say);
-        node.Reactions = await ParseReactions(topic, names);
+        log += string.Format("{0}: {1}\n", node.Actor.Name, node.Say);
+        node.Reactions = await ParseReactions(names);
     }
 
-    private async Task<ChatNode.Reaction[]> ParseReactions(string topic, string[] names)
+    private async Task<ChatNode.Reaction[]> ParseReactions(string[] names)
     {
         var faces = string.Join("\n- ", Sentiment.All.Select(s => s.Name));
         var options = string.Join("\n- ", names);
-        var prompt = _prompt.Format(faces, options, topic, context);
+        var prompt = _prompt.Format(faces, options, log);
 
         var message = await OpenAiIntegration.CompleteAsync(prompt, true);
         var lines = message.Parse(names);

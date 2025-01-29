@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 public class MemoryBucket
 {
+    public static Dictionary<string, MemoryBucket> Buckets = new Dictionary<string, MemoryBucket>();
+
     public string Name { get; private set; }
     public List<Memory> Memories { get; private set; }
 
@@ -15,11 +17,19 @@ public class MemoryBucket
     {
         Name = name;
         Memories = new List<Memory>();
+        Buckets[name] = this;
     }
 
     public async Task Add(string text)
     {
-        var embeddings = await OpenAiIntegration.EmbedAsync(text);
+        var sentences = text.ToSentences();
+        foreach (var sentence in sentences)
+            await AddSentence(sentence);
+    }
+
+    public async Task AddSentence(string text)
+    {
+        var embeddings = await OpenAiIntegration.EmbedAsync(text, 512);
         Memories.Add(new Memory(text, embeddings));
     }
 
@@ -30,6 +40,7 @@ public class MemoryBucket
 
         var json = JsonConvert.SerializeObject(Memories);
         await File.WriteAllTextAsync($"./Memories/{Name}.json", json);
+        Buckets.Remove(Name);
     }
 
     public async Task Load()
@@ -37,8 +48,7 @@ public class MemoryBucket
         if (!Directory.Exists("./Memories"))
             Directory.CreateDirectory("./Memories");
         if (!File.Exists($"./Memories/{Name}.json"))
-            await File.WriteAllTextAsync($"./Memories/{Name}.json", "[]");
-
+            return;
         var json = await File.ReadAllTextAsync($"./Memories/{Name}.json");
         Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
     }
@@ -50,9 +60,18 @@ public class MemoryBucket
         return memory.Text;
     }
 
-    public string Get()
+    public string Get(int length = 1024, bool lengthMustBeNonZero = false)
     {
-        var memory = Memories.OrderBy(x => x.Created).Take(24).Select(x => x.Text).ToArray();
+        var memory = Memories
+            .OrderBy(x => x.Created)
+            .Select(x => x.Text)
+            .Where(s =>
+            {
+                if (length <= s.Length && lengthMustBeNonZero)
+                    return false;
+                length -= s.Length;
+                return length >= 0;
+            }).ToArray();
         return string.Join("\n", memory);
     }
 

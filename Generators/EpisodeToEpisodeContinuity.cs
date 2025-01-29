@@ -1,7 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 
-public class Summarizer : MonoBehaviour, ISubGenerator
+public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
 {
     public static string GroundState => _bucket.Get();
     private static MemoryBucket _bucket = new MemoryBucket("#general");
@@ -17,11 +18,15 @@ public class Summarizer : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(Chat chat)
     {
         var memory = await OpenAiIntegration.CompleteAsync(
-            _prompt.Format(chat.Log, GroundState), true);
+            _prompt.Format(chat.Log, GroundState), false);
         await _bucket.Add(memory);
 
-        _bucket.Clean();
-        await _bucket.Save();
+        var buckets = MemoryBucket.Buckets.Values.ToArray();
+        foreach (var bucket in buckets)
+        {
+            bucket.Clean();
+            await bucket.Save();
+        }
 
         return chat;
     }

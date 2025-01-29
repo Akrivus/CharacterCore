@@ -98,7 +98,8 @@ public class ChatManager : MonoBehaviour
             yield return Play(chat);
         }
 
-        yield return UpdatePlayList();
+        if (Application.isPlaying)
+            yield return UpdatePlayList();
     }
 
     private IEnumerator Play(Chat chat)

@@ -14,11 +14,14 @@ public class Chat
     public string FileName { get; set; }
     public string Context { get; set; }
     public string Topic { get; set; } = "";
+    public string Characters { get; set; } = "";
+
     public string Location { get; set; } = "";
-    public string TextureData { get; set; }
     public ActorContext[] Actors { get; set; }
     public List<ChatNode> Nodes { get; set; }
     public Idea Idea { get; set; }
+
+    public string TextureData { get; set; }
     public string[] Cues { get; set; }
     public string EndingTrigger { get; set; }
 
@@ -83,7 +86,7 @@ public class Chat
     {
         AppendContext("### Characters:");
         foreach (var actor in Actors)
-            AppendContext(actor.Context);
+            AppendContext(actor.Prompt);
         Context = Context.Trim();
     }
 

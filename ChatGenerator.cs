@@ -14,9 +14,6 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField]
     private TextAsset _prompt;
 
-    [SerializeField]
-    private Actor[] _actors;
-
     private string slug => name.Replace(' ', '-').ToLower();
 
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponentsInChildren<ISubGenerator>());
@@ -24,9 +21,8 @@ public class ChatGenerator : MonoBehaviour
 
     private ConcurrentQueue<Idea> queue = new ConcurrentQueue<Idea>();
 
-    private void Awake()
+    private void Start()
     {
-        _actors = _actors.Length > 0 ? _actors : Actor.All.List.ToArray();
         StartCoroutine(UpdateQueue());
         ServerIntegration.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
@@ -45,7 +41,8 @@ public class ChatGenerator : MonoBehaviour
             ChatManager.Instance.AddToPlayList(chat);
         }
 
-        yield return UpdateQueue();
+        if (Application.isPlaying)
+            yield return UpdateQueue();
     }
 
     public async Task<string> HandleRequest(Idea idea)
@@ -94,12 +91,25 @@ public class ChatGenerator : MonoBehaviour
     {
         if (_prompt != null)
         {
-            var options = string.Join(", ", GetCharacterNames());
-            var prompt = _prompt.Format(chat.Idea.Prompt, options, Summarizer.GroundState);
+            var options = string.Join("\n - ", GetCharacterNames());
+            var idea = chat.Idea.Prompt;
+            var prompt = _prompt.Format(EpisodeToEpisodeContinuity.GroundState, options, idea);
+            var topic = await OpenAiIntegration.CompleteAsync(prompt, false);
 
-            chat.Context = Summarizer.GroundState;
-            chat.Messages = await OpenAiIntegration.ChatAsync(prompt);
-            chat.Topic = chat.Messages.Last().Content.ToString();
+            var characters = topic.Find("Characters");
+            if (characters != null)
+            {
+                chat.Actors = characters.Split(',')
+                    .Select(n => n.Trim())
+                    .Select(n => ActorConverter.Find(n))
+                    .OfType<Actor>()
+                    .Select(a => new ActorContext(a))
+                    .ToArray();
+                topic = topic.Replace("Characters: " + characters, "");
+            }
+
+            chat.Topic = topic;
+            chat.Context = EpisodeToEpisodeContinuity.GroundState;
         }
 
         foreach (var g in generators)
@@ -113,10 +123,8 @@ public class ChatGenerator : MonoBehaviour
         AddIdeaToQueue(new Idea(message));
     }
 
-    private static string[] _;
-
     private string[] GetCharacterNames()
     {
-        return _ ??= _actors.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).ToArray();
+        return Actor.All.List.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).ToArray();
     }
 }

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-public class ActorGenerator : MonoBehaviour, ISubGenerator.Sync
+public class ActorNameMatcher : MonoBehaviour, ISubGenerator.Sync
 {
     public Chat Generate(Chat chat)
     {

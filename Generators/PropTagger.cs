@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ItemSelector : MonoBehaviour, ISubGenerator
+public class PropTagger : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
     private string[] items;
@@ -23,9 +23,7 @@ public class ItemSelector : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(Chat chat)
     {
         var names = chat.Names;
-        var topic = chat.Topic;
-
-        var itemSet = await _prompt.ExtractSet(names, topic)
+        var itemSet = await _prompt.ExtractSet(names, chat.Log)
             .ContinueWith(task => task.Result
                 .ToDictionary(
                     line => chat.Actors.Get(line.Key),

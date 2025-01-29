@@ -53,7 +53,7 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
         OnNodeGenerated += async (chat, node) =>
         {
-            await _sentiment.GenerateForNode(node, chat.Names, chat.Topic);
+            await _sentiment.GenerateForNode(node, chat.Names);
             await _memories.Memorize(node);
             await _tts.GenerateTextToSpeech(node);
         };
@@ -221,7 +221,7 @@ public class AgenticDialogueGenerator : MonoBehaviour, ISubGenerator, IEventRece
 
         public DialogueAgent(ActorContext actor, TextAsset prompt, string topic, string[] names)
         {
-            Prompt = prompt.Format(END_TOKEN, actor.Name, actor.Context, topic, actor.SoundGroup);
+            Prompt = prompt.Format(END_TOKEN, actor.Name, actor.Prompt, topic, actor.SoundGroup);
             _actor = actor;
             _buffer = GenerateBufferSentence(names);
         }

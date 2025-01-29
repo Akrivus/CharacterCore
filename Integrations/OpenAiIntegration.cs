@@ -36,40 +36,56 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
     {
         try
         {
-            Debug.Log(messages[messages.Count - 1].Content);
+            var cts = new System.Threading.CancellationTokenSource();
+            cts.CancelAfter(10000);
+
+            Debug.Log(messages.Last().Content);
+
             var model = fast ? FAST_MODEL : SLOW_MODEL;
-            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model), cts.Token);
+
             var response = request.FirstChoice;
             if (response.FinishReason != "stop")
                 throw new Exception(response.FinishDetails);
             messages.Add(response.Message);
 
             Debug.Log(response.Message.Content);
-            return messages;
         }
         catch (Exception e)
         {
             Debug.LogError(e.Message);
-            return new List<Message>();
         }
+        return messages;
     }
 
     public static async Task<List<Message>> ChatAsync(string prompt, bool fast = false)
     {
-        return await ChatAsync(new List<Message> { new Message(Role.System, prompt) }, fast);
+        _.Clear();
+        _.Add(new Message(Role.System, prompt));
+        return await ChatAsync(_, fast);
     }
 
     public static async Task<string> CompleteAsync(string prompt, bool fast = false)
     {
         var messages = await ChatAsync(prompt, fast);
-        return messages[messages.Count - 1].Content.ToString();
+        return messages.Last().Content.ToString();
     }
 
-    public static async Task<double[]> EmbedAsync(string text)
+    public static async Task<double[]> EmbedAsync(string text, int dimensions = 1532)
     {
         if (string.IsNullOrEmpty(text))
             return new double[0];
-        var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text));
-        return request.Data.FirstOrDefault().Embedding.ToArray();
+        try
+        {
+            var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text, "text-embedding-3-small", "me", dimensions));
+            return request.Data.FirstOrDefault().Embedding.ToArray();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+            return new double[0];
+        }
     }
+
+    private static List<Message> _ = new List<Message>();
 }

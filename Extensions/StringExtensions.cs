@@ -30,7 +30,7 @@ public static class StringExtensions
     {
         var sentences = sentenceSplitter.Split(str);
         sentences = sentences
-            .Select(s => Regex.Replace(s.Trim().Scrub(), @"\s{2,}", " "))
+            .Select(s => Regex.Replace(s.Trim(), @"\s{2,}", " "))
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToArray();
         if (sentences.Length == 0)

@@ -12,7 +12,8 @@ public class ActorContext
     public string Item { get; set; }
     public string SoundGroup { get; set; }
     public string SpawnPoint { get; set; }
-    
+    public string Context { get; set; }
+
     [JsonIgnore]
     public string Name => Reference.Name;
 
@@ -27,5 +28,5 @@ public class ActorContext
     }
 
     [JsonIgnore]
-    public string Context => Reference.Prompt.text;
+    public string Prompt => Reference.Prompt.text;
 }
