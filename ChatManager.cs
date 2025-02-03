@@ -11,7 +11,6 @@ public class ChatManager : MonoBehaviour
     public static ChatManager Instance => _instance ?? (_instance = FindFirstObjectByType<ChatManager>());
     private static ChatManager _instance;
 
-
     public event Action OnChatQueueEmpty;
     public event Action<Chat> OnChatQueueAdded;
 
@@ -27,6 +26,7 @@ public class ChatManager : MonoBehaviour
 
     public event Action<ChatNode> OnChatNodeActivated;
 
+    public bool RemoveActorsOnCompletion { get; set; } = true;
     public Chat NowPlaying { get; private set; }
     public List<Chat> PlayList => playList
         .ToList()
@@ -44,8 +44,6 @@ public class ChatManager : MonoBehaviour
 
     [SerializeField]
     private Actor narrator;
-
-    private bool _firstTime = true;
 
     private void Awake()
     {
@@ -83,20 +81,17 @@ public class ChatManager : MonoBehaviour
     private IEnumerator UpdatePlayList()
     {
         var chat = default(Chat);
-        yield return new WaitUntilTimer(() => playList.TryDequeue(out chat), _firstTime ? 1 : 120);
 
         if (playList.IsEmpty)
-        {
             OnChatQueueEmpty?.Invoke();
+
+        yield return new WaitUntilTimer(() => playList.TryDequeue(out chat));
+
+        if (playList.IsEmpty && RemoveActorsOnCompletion)
             yield return RemoveAllActors();
-            _firstTime = false;
-        }
 
         if (chat != null)
-        {
-            _firstTime = true;
             yield return Play(chat);
-        }
 
         if (Application.isPlaying)
             yield return UpdatePlayList();
@@ -144,6 +139,10 @@ public class ChatManager : MonoBehaviour
         foreach (var ac in actors)
             if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
                 ac.Sentiment = chat.Actors.Get(ac.Actor).Sentiment;
+
+        if (chat.IsLocked)
+            foreach (var node in chat.Nodes)
+                node.New = true;
 
         BeforeIntermission?.Invoke();
         yield return OnIntermission?.Invoke(chat);

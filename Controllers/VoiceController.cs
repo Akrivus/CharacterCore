@@ -10,7 +10,7 @@ public class VoiceController : AutoActor, ISubNode
         var pitch = score + 1f;
         var volume = Mathf.Abs(score) * 3f + 1f;
 
-        ActorController.Voice.pitch = pitch;
+        ActorController.Voice.pitch = pitch * Actor.SpeakingRate;
         ActorController.Voice.volume = volume;
     }
 }

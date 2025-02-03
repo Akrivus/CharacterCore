@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class ActorController : MonoBehaviour
@@ -102,14 +103,16 @@ public class ActorController : MonoBehaviour
             subNode.Activate(node);
 
         var clip = node.AudioClip;
+
+        if (clip == null)
+            yield break;
+        
         voice.clip = clip;
         voice.Play();
 
-        var time = clip.length * voice.pitch;
-        _totalTalkTime += time;
-
         if (!node.Async)
-            yield return new WaitUntilTimer(() => !voice.isPlaying, time);
+            yield return new WaitUntilTimer(() => !voice.isPlaying, clip.length);
+        _totalTalkTime += clip.length * voice.pitch * Actor.SpeakingRate;
     }
 
     public IEnumerator Initialize(Chat chat)

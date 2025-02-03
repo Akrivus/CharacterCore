@@ -31,9 +31,6 @@ public class ServerIntegration : MonoBehaviour
     [SerializeField]
     private ChatGenerator Generator;
 
-    [SerializeField]
-    private ChatEventBroker Broker;
-
     public bool IsRunning { get; private set; } = true;
 
     public void Awake()

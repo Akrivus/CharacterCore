@@ -57,7 +57,7 @@ public class ChatNode
     public ChatNode(Actor actor, string text)
     {
         Actor = actor;
-        Text = text;
+        Line = Text = text;
         Say = text.Scrub();
         Actions = text.Rinse();
         Reactions = new Reaction[0];

@@ -32,17 +32,30 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
         ConfigManager.Instance.RegisterConfig(typeof(OpenAIConfigs), "openai", (config) => Configure((OpenAIConfigs) config));
     }
 
+    private static int? RemainingRequests;
+    private static int? RemainingTokens;
+    private static TimeSpan ResetRequestsTimespan;
+
     public static async Task<List<Message>> ChatAsync(List<Message> messages, bool fast = false)
     {
         try
         {
-            var cts = new System.Threading.CancellationTokenSource();
-            cts.CancelAfter(10000);
+            var tokens = messages.Sum(m => m.Content.ToString().Length / 3);
+            if (tokens > RemainingTokens || RemainingRequests <= 1)
+            {
+                var reset = ResetRequestsTimespan.TotalSeconds;
+                Debug.LogWarning($"OpenAI rate limit reached. Waiting {reset} seconds.");
+                await Task.Delay((int) reset * 1000);
+            }
 
             Debug.Log(messages.Last().Content);
 
             var model = fast ? FAST_MODEL : SLOW_MODEL;
-            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model), cts.Token);
+            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+
+            RemainingRequests = request.RemainingRequests;
+            RemainingTokens = request.RemainingTokens;
+            ResetRequestsTimespan = request.ResetRequestsTimespan;
 
             var response = request.FirstChoice;
             if (response.FinishReason != "stop")

@@ -20,6 +20,7 @@ public class Actor : ScriptableObject
 
     public string Voice;
     public string ColorScheme;
+    public string Costume;
 
     public TextAsset Prompt;
     public GameObject Prefab;

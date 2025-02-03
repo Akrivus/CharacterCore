@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 public class MemoryBucket
@@ -22,15 +21,8 @@ public class MemoryBucket
 
     public async Task Add(string text)
     {
-        var sentences = text.ToSentences();
-        foreach (var sentence in sentences)
-            await AddSentence(sentence);
-    }
-
-    public async Task AddSentence(string text)
-    {
-        var embeddings = await OpenAiIntegration.EmbedAsync(text, 512);
-        Memories.Add(new Memory(text, embeddings));
+        Memories.Add(new Memory(text, Embed(text)));
+        await Task.CompletedTask;
     }
 
     public async Task Save()
@@ -60,14 +52,15 @@ public class MemoryBucket
         return memory.Text;
     }
 
-    public string Get(int length = 1024, bool lengthMustBeNonZero = false)
+    public string Get(int length = 1024)
     {
         var memory = Memories
             .OrderBy(x => x.Created)
+            .Reverse()
             .Select(x => x.Text)
             .Where(s =>
             {
-                if (length <= s.Length && lengthMustBeNonZero)
+                if (length <= s.Length)
                     return false;
                 length -= s.Length;
                 return length >= 0;
@@ -88,6 +81,19 @@ public class MemoryBucket
             foreach (var s in similar)
                 Memories.Remove(s);
         }
+    }
+
+    private double[] Embed(string text)
+    {
+        return new double[0];
+        return OpenAiIntegration.EmbedAsync(text).Result;
+    }
+
+    public static MemoryBucket Get(string name)
+    {
+        if (Buckets.ContainsKey(name))
+            return Buckets[name];
+        return new MemoryBucket(name);
     }
 
     private static double CosineSimilarity(double[] a, double[] b)

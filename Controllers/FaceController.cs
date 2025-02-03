@@ -8,6 +8,9 @@ public class FaceController : AutoActor
     [SerializeField]
     private Transform faceObject;
 
+    [SerializeField, Range(0.1f, 1.0f)]
+    private float faceScale = 0.6f;
+
     private void Update()
     {
         UpdateBodyScale();
@@ -31,7 +34,7 @@ public class FaceController : AutoActor
         var x = 1f / bodyObject.transform.localScale.x;
         var y = 1f / bodyObject.transform.localScale.y;
         var z = 1f / bodyObject.transform.localScale.z;
-        faceObject.transform.localScale = new Vector3(x, y, z);
+        faceObject.transform.localScale = new Vector3(x, y, z) * faceScale;
     }
 
     private void MoveBodyUp()

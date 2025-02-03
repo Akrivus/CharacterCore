@@ -18,6 +18,8 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         var content = await OpenAiIntegration.CompleteAsync(prompt, false);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
+        var actors = chat.Actors.ToList();
+
         foreach (var line in lines)
         {
             var parts = line.Split(':');
@@ -27,9 +29,15 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
 
             var actor = ActorConverter.Find(name);
             if (actor != null)
+            {
                 foreach (var sentence in sentences)
                     chat.Nodes.Add(new ChatNode(actor, sentence));
+                if (chat.Actors.Get(actor.Name) == null)
+                    actors.Add(new ActorContext(actor));
+            }
         }
+
+        chat.Actors = actors.ToArray();
 
         if (_attempts < 3 && chat.Nodes.Count < 2)
         {

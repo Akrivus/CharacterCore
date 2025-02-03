@@ -20,6 +20,7 @@ public class ActorContext
     public ActorContext(Actor actor)
     {
         Reference = actor;
+        Costume = actor.Costume;
     }
 
     public ActorContext()

@@ -5,6 +5,9 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode
     [SerializeField]
     private AudioSource source;
 
+    [SerializeField]
+    private MeshRenderer bgRenderer;
+
     private SoundGroup soundGroup;
 
     private void PlaySoundGroup()
@@ -34,6 +37,10 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode
         if (name != null)
             SetSoundGroup(name);
         PlaySoundGroup();
+
+        var background = Resources.Load<Texture2D>($"Backgrounds/{Actor.Name}");
+        if (background != null)
+            bgRenderer.material.mainTexture = background;
     }
 
     public void Activate(ChatNode node)

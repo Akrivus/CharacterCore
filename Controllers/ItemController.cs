@@ -13,8 +13,8 @@ public class ItemController : AutoActor, ISubChats, ISubNode
 
     private void Update()
     {
-        var time = Time.time * 0.5f + transform.GetSiblingIndex() * 1000f;
-        var sin = Mathf.Sin(time) * ActorController.Sentiment.Score;
+        var time = Time.time * (ActorController.IsTalking ? 1.0f : 0.5f) + transform.GetSiblingIndex() * 1000f;
+        var sin = Mathf.Sin(time) * ActorController.Sentiment.Score * (ActorController.IsTalking ? 4f : 1f);
         var position = itemPosition - Vector3.forward * sin;
 
         itemRenderer.transform.Rotate(Vector3.forward, Mathf.Sin(time) * 0.025f);

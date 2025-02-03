@@ -23,8 +23,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(Chat chat)
     {
         foreach (var node in chat.Nodes)
-            if (node.AudioData == null)
-                await GenerateTextToSpeech(node);
+            await GenerateTextToSpeech(node);
         return chat;
     }
 
@@ -38,22 +37,35 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private async Task GenerateWithGoogle(ChatNode node)
     {
-        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
-        var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
+        var attempts = 0;
+        var success = node.AudioData != null;
 
-        var client = new HttpClient();
-        var response = await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
-        if (!response.IsSuccessStatusCode)
+        while (!success)
         {
-            await Task.Delay(1000);
-            await GenerateTextToSpeech(node);
+            if (attempts > 30)
+            {
+                Debug.LogError("Failed to generate audio with Google TTS.");
+                return;
+            }
+
+            var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
+            var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
+
+            var client = new HttpClient();
+            var response = await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+            success = response.IsSuccessStatusCode;
+
+            if (success)
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                var output = JsonConvert.DeserializeObject<Output>(text);
+                node.New = true;
+                node.AudioData = output.AudioData;
+            }
+
+            success = success && node.AudioData != null;
+            await Task.Delay(1000 * attempts++);
         }
-
-        var text = await response.Content.ReadAsStringAsync();
-        var output = JsonConvert.DeserializeObject<Output>(text);
-        node.AudioData = output.AudioData;
-
-        node.New = true;
     }
 
     private async Task GenerateWithOpenAI(ChatNode node)

@@ -28,6 +28,7 @@ public class SubtitlesUIManager : MonoBehaviour
     {
         ChatManager.Instance.AfterIntermission += OnQueueTaken;
         ChatManager.Instance.OnChatNodeActivated += OnNodeActivated;
+        ChatManager.Instance.OnChatQueueEmpty += ClearSubtitle;
     }
 
     private void OnQueueTaken(Chat chat)

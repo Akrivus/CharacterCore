@@ -11,7 +11,7 @@ public class MemoryGeneration : MonoBehaviour, ISubGenerator
     {
         foreach (var actor in chat.Actors)
         {
-            var bucket = MemoryBucket.Buckets[actor.Name];
+            var bucket = MemoryBucket.Get(actor.Name);
             var memory = await OpenAiIntegration.CompleteAsync(
                 _prompt.Format(chat.Log, actor.Prompt, bucket.Get()), false);
             await bucket.Add(memory);

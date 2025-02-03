@@ -12,6 +12,9 @@ public class ChatGenerator : MonoBehaviour
     public bool DisableLock { get; set; }
 
     [SerializeField]
+    private bool save = true;
+
+    [SerializeField]
     private TextAsset _prompt;
 
     private string slug => name.Replace(' ', '-').ToLower();
@@ -33,13 +36,7 @@ public class ChatGenerator : MonoBehaviour
         yield return new WaitUntilTimer(() => queue.TryDequeue(out idea));
 
         if (idea != null)
-        {
-            var task = GenerateAndSave(idea);
-            yield return new WaitUntilTimer(() => task.IsCompleted);
-            var chat = task.Result;
-
-            ChatManager.Instance.AddToPlayList(chat);
-        }
+            yield return GenerateIdea(idea);
 
         if (Application.isPlaying)
             yield return UpdateQueue();
@@ -61,6 +58,13 @@ public class ChatGenerator : MonoBehaviour
         AddIdeaToQueue(new Idea(prompt));
     }
 
+    public async Task<Chat> GenerateIdea(Idea idea)
+    {
+        var chat = await GenerateAndSave(idea);
+        ChatManager.Instance.AddToPlayList(chat);
+        return chat;
+    }
+
     public async Task<Chat> GenerateAndSave(Idea idea)
     {
         var chat = new Chat(idea);
@@ -80,7 +84,7 @@ public class ChatGenerator : MonoBehaviour
         if (!DisableLock)
         {
             chat.Lock();
-            chat.Save();
+            if (save) chat.Save();
         }
         DisableLock = false;
 
@@ -125,6 +129,6 @@ public class ChatGenerator : MonoBehaviour
 
     private string[] GetCharacterNames()
     {
-        return Actor.All.List.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).ToArray();
+        return Actor.All.List.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).Shuffle().ToArray();
     }
 }

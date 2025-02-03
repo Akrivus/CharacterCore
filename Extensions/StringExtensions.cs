@@ -8,9 +8,9 @@ using UnityEngine;
 
 public static class StringExtensions
 {
-    private static readonly Regex actionRegex = new Regex(@"^([*(\[]([^[\])*]+)[\])*])");
-    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.!?—'’]");
-    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])\s+");
+    private static readonly Regex actionRegex = new Regex(@"^[\s]*([*(\[]([^[\])*]+)[\])*])|([*(\[]([^[\])*]+)[\])*])[\s,.!?]*$");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.…!?-—“‘'’”#]");
+    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?])\s*");
 
     public static string Chomp(this string str)
     {
@@ -19,7 +19,7 @@ public static class StringExtensions
 
     public static string Scrub(this string str)
     {
-        var chr = str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSurrogate(c)).ToArray();
+        var chr = str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSymbol(c)).ToArray();
         str = string.Join("", chr);
         str = actionRegex.Replace(str, string.Empty);
         str = symbolRegex.Replace(str, string.Empty);
@@ -30,7 +30,8 @@ public static class StringExtensions
     {
         var sentences = sentenceSplitter.Split(str);
         sentences = sentences
-            .Select(s => Regex.Replace(s.Trim(), @"\s{2,}", " "))
+            .Select(s => Regex.Replace(s, @"\s{2,}", " "))
+            .Select(s => s.Trim())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToArray();
         if (sentences.Length == 0)
