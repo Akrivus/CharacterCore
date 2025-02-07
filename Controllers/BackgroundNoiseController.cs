@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode
+public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubActor
 {
     [SerializeField]
     private AudioSource source;
@@ -37,10 +37,6 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode
         if (name != null)
             SetSoundGroup(name);
         PlaySoundGroup();
-
-        var background = Resources.Load<Texture2D>($"Backgrounds/{Actor.Name}");
-        if (background != null)
-            bgRenderer.material.mainTexture = background;
     }
 
     public void Activate(ChatNode node)
@@ -48,5 +44,12 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode
         if (source.isPlaying)
             return;
         PlaySoundGroup();
+    }
+
+    public void UpdateActor(ActorContext context)
+    {
+        var background = Resources.Load<Texture2D>($"Backgrounds/{Actor.Name}");
+        if (background != null)
+            bgRenderer.material.mainTexture = background;
     }
 }
