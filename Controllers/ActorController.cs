@@ -13,8 +13,6 @@ public class ActorController : MonoBehaviour
     public float VoiceVolume => voice.GetAmplitude();
     public bool IsTalking => voice.isPlaying && VoiceVolume > 0.0f;
 
-    public float ScreenOrder => _screenOrder + _totalTalkTime + (IsTalking ? 1 : 0);
-
     public AudioSource Voice => voice;
     public AudioSource Sound => sound;
 
@@ -29,7 +27,6 @@ public class ActorController : MonoBehaviour
     [SerializeField]
     private float delay = 1.2f;
 
-    private float _screenOrder;
     private float _totalTalkTime;
 
     public ActorContext Context
@@ -117,7 +114,6 @@ public class ActorController : MonoBehaviour
 
     public IEnumerator Initialize(Chat chat)
     {
-        _screenOrder = Array.IndexOf(chat.Names, Context.Name);
         foreach (var sub in sub_Chats)
             sub.Initialize(chat);
         yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));

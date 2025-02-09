@@ -42,9 +42,6 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private Transform[] spawnPoints;
 
-    [SerializeField]
-    private Actor narrator;
-
     private void Awake()
     {
         _instance = this;
@@ -129,8 +126,10 @@ public class ChatManager : MonoBehaviour
 
         NowPlaying = chat;
 
+        BeforeIntermission?.Invoke();
+        yield return OnIntermission?.Invoke(chat);
+
         var incoming = chat.Actors
-            .Prepend(new ActorContext(narrator))
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var context in incoming)
@@ -144,8 +143,6 @@ public class ChatManager : MonoBehaviour
             foreach (var node in chat.Nodes)
                 node.New = true;
 
-        BeforeIntermission?.Invoke();
-        yield return OnIntermission?.Invoke(chat);
         AfterIntermission?.Invoke(chat);
     }
 
@@ -156,7 +153,7 @@ public class ChatManager : MonoBehaviour
 
         var actor = actors.Get(node.Actor);
         if (actor == null)
-            actor = actors.Get(narrator);
+            actor = actors.First();
         yield return actor.Activate(node);
 
         yield return SetActorReactions(node);

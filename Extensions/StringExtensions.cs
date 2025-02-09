@@ -9,8 +9,8 @@ using UnityEngine;
 public static class StringExtensions
 {
     private static readonly Regex actionRegex = new Regex(@"^[\s]*([*(\[]([^[\])*]+)[\])*])|([*(\[]([^[\])*]+)[\])*])[\s,.!?]*$");
-    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.…!?-—“‘'’”#]");
-    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?])\s*");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.…!?\—–-“‘'’”#]");
+    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])\s*");
 
     public static string Chomp(this string str)
     {
@@ -73,7 +73,9 @@ public static class StringExtensions
 
     public static Dictionary<string, string> Parse(this string prompt, params string[] sections)
     {
-        var dict = sections.ToDictionary(k => k, v => string.Empty);
+        var dict = sections
+            .GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(k => k.First(), v => string.Empty);
         var lines = prompt
                     .Replace("#", string.Empty)
                     .Replace("**", string.Empty)

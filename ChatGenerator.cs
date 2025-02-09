@@ -9,6 +9,8 @@ public class ChatGenerator : MonoBehaviour
 {
     public event Func<Chat, Task> OnGeneration;
 
+    public int Count => queue.Count;
+
     public bool DisableLock { get; set; }
 
     [SerializeField]
@@ -50,6 +52,11 @@ public class ChatGenerator : MonoBehaviour
 
     public void AddIdeaToQueue(Idea idea)
     {
+        if (queue.Count > 1)
+        {
+            Debug.LogWarning("Queue is full.");
+            return;
+        }
         queue.Enqueue(idea);
     }
 

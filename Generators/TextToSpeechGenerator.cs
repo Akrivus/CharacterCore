@@ -48,11 +48,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
                 return;
             }
 
-            var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
-            var json = JsonConvert.SerializeObject(new Request(node.Say, node.Actor.Voice));
-
-            var client = new HttpClient();
-            var response = await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+            var response = await RequestFromGoogle(node.Say, node.Actor.Voice);
             success = response.IsSuccessStatusCode;
 
             if (success)
@@ -77,6 +73,27 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         node.AudioClip = response.AudioClip;
 
         node.New = true;
+    }
+
+    private static async Task<HttpResponseMessage> RequestFromGoogle(string text, string voice)
+    {
+        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
+        var json = JsonConvert.SerializeObject(new Request(text, voice));
+
+        var client = new HttpClient();
+        return await client.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+    }
+
+    public static async Task<AudioClip> GetClipFromGoogle(string text, string voice)
+    {
+        if (string.IsNullOrEmpty(TTSIntegration.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
+            return null;
+        var response = await RequestFromGoogle(text, voice);
+        if (!response.IsSuccessStatusCode)
+            return null;
+        var json = await response.Content.ReadAsStringAsync();
+        var output = JsonConvert.DeserializeObject<Output>(json);
+        return output.AudioData.ToAudioClip();
     }
 
     class Request

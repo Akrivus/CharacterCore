@@ -8,9 +8,6 @@ public class SubtitlesUIManager : MonoBehaviour
     private static SubtitlesUIManager _instance;
 
     [SerializeField]
-    private TextMeshProUGUI _title;
-
-    [SerializeField]
     private TextMeshProUGUI _spot;
 
     [SerializeField]
@@ -36,7 +33,6 @@ public class SubtitlesUIManager : MonoBehaviour
         if (_spot != null)
             _spot.enabled = chat.NewEpisode;
         ClearSubtitle();
-        SetChatTitle(chat);
     }
 
     public void OnNodeActivated(ChatNode node)
@@ -63,14 +59,5 @@ public class SubtitlesUIManager : MonoBehaviour
     {
         _subtitle.text = string.Empty;
         _shadow.text = string.Empty;
-    }
-
-    public void SetChatTitle(Chat chat)
-    {
-        var prompt = chat.Idea.Prompt.Split('\n')[0];
-        if (prompt.Length > 160)
-            prompt = prompt.Substring(0, 160) + "...";
-        if (_title != null)
-            _title.text = $"<u><b>{chat.Idea.Source}</b></u> • {prompt}";
     }
 }

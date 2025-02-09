@@ -63,6 +63,14 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
             messages.Add(response.Message);
 
             Debug.Log(response.Message.Content);
+            DiscordIntegration.PutInQueue("#chatgpt", new DiscordWebhookMessage(
+                string.Empty, model, null,
+                new DiscordEmbed
+                {
+                    Title = "New Output",
+                    Description = response.Message.Content.ToString(),
+                    Color = 0xFFFFFF
+                }));
         }
         catch (Exception e)
         {

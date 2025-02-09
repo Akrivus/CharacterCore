@@ -10,8 +10,11 @@ using UnityEngine;
 public class Chat
 {
     public static string FolderName = "";
-
     public string FileName { get; set; }
+
+    public string Title { get; set; }
+    public string Synopsis { get; set; }
+
     public string Context { get; set; }
     public string Topic { get; set; } = "";
     public string Characters { get; set; } = "";
