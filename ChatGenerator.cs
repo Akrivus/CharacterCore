@@ -25,7 +25,7 @@ public class ChatGenerator : MonoBehaviour
     private void Start()
     {
         StartCoroutine(UpdateQueue());
-        RemoteSource.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
+        ServerSource.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
 
     private IEnumerator UpdateQueue()

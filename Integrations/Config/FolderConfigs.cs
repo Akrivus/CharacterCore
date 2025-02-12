@@ -1,4 +1,4 @@
-﻿public class ReplayConfigs : IConfig
+﻿public class FolderConfigs : IConfig
 {
     public string Type => "replay";
     public string ReplayDirectory { get; set; }

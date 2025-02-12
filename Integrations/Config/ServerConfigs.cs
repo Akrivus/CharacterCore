@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class HumanConfigs : IConfig
+public class ServerConfigs : IConfig
 {
     public string Type => "premier";
     public List<string> Prompts { get; set; }

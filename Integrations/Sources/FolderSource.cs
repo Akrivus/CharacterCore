@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ReplaySource : MonoBehaviour, IConfigurable<ReplayConfigs>
+public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 {
     public string ReplayDirectory;
     public int ReplayRate = 80;
@@ -17,10 +17,7 @@ public class ReplaySource : MonoBehaviour, IConfigurable<ReplayConfigs>
     private List<string> replays = new List<string>();
     private ConcurrentQueue<Chat> queue = new ConcurrentQueue<Chat>();
 
-    public string Name => "replay";
-    public bool IsRunning => queue.Count > 0;
-
-    public void Configure(ReplayConfigs c)
+    public void Configure(FolderConfigs c)
     {
         ReplayDirectory = c.ReplayDirectory;
         ReplayRate = c.ReplayRate;
@@ -51,7 +48,7 @@ public class ReplaySource : MonoBehaviour, IConfigurable<ReplayConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(ReplayConfigs), "folder", (config) => Configure((ReplayConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs) config));
     }
 
     private void OnDestroy()
@@ -76,11 +73,11 @@ public class ReplaySource : MonoBehaviour, IConfigurable<ReplayConfigs>
             queue.Enqueue(await task);
     }
 
-    private async Task<Chat> LogThenLoad(string title)
+    private Task<Chat> LogThenLoad(string title)
     {
         replays = replays.TakeLast(ReplayRate - 1).ToList();
         replays.Add(title);
-        return await Chat.Load(title);
+        return Chat.Load(title);
     }
 
     private List<string> LoadReplays()

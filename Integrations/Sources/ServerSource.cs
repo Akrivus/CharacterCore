@@ -13,9 +13,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class RemoteSource : MonoBehaviour, IConfigurable<HumanConfigs>
+public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
 {
-    public static RemoteSource Instance { get; private set; }
+    public static ServerSource Instance { get; private set; }
 
     static Dictionary<string, Dictionary<string, Action<HttpListenerContext>>> routes = new Dictionary<string, Dictionary<string, Action<HttpListenerContext>>>()
     {
@@ -34,7 +34,7 @@ public class RemoteSource : MonoBehaviour, IConfigurable<HumanConfigs>
 
     public bool IsListening { get; private set; } = true;
 
-    public void Configure(HumanConfigs c)
+    public void Configure(ServerConfigs c)
     {
         for (var i = 0; i < c.Prompts.Count; i++)
             if (File.Exists(c.Prompts[i]))
@@ -55,7 +55,7 @@ public class RemoteSource : MonoBehaviour, IConfigurable<HumanConfigs>
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         Instance = this;
 
-        ConfigManager.Instance.RegisterConfig(typeof(HumanConfigs), "human", (config) => Configure((HumanConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(ServerConfigs), "human", (config) => Configure((ServerConfigs) config));
 
         AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));
