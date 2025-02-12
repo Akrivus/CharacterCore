@@ -9,8 +9,8 @@ using UnityEngine;
 public static class StringExtensions
 {
     private static readonly Regex actionRegex = new Regex(@"^[\s]*([*(\[]([^[\])*]+)[\])*])|([*(\[]([^[\])*]+)[\])*])[\s,.!?]*$");
-    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s,.…!?\—–-“‘'’”#]");
-    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])\s*");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\*\-—–+×÷=~“‘(')’”#@&%$€¥£]");
+    private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])(?=\s+|\z)");
 
     public static string Chomp(this string str)
     {
@@ -117,6 +117,11 @@ public static class StringExtensions
         return text;
     }
 
+    public static Idea ToIdea(this TextAsset str)
+    {
+        return new Idea(str.text);
+    }
+
     public static string ToFileSafeString(this string str)
     {
         str = str.Take(64).Aggregate("", (acc, c) => acc + c);
@@ -130,7 +135,7 @@ public static class StringExtensions
         if (set == null)
             set = names;
         var prompt = textAsset.Format(string.Join("\n- ", names), context);
-        var message = await OpenAiIntegration.CompleteAsync(prompt, true);
+        var message = await LLM.CompleteAsync(prompt, true);
 
         var lines = message.Parse(set);
 

@@ -20,30 +20,31 @@ public class Narrator : MonoBehaviour
     {
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
-        SoccerIntegration.Instance.OnEmit += Narrate;
+        SoccerGameSource.Instance.OnEmit += Narrate;
     }
 
     private bool Play(string text)
     {
         if (audioSource.isPlaying)
             return true;
-        var clip = clips.GetValueOrDefault(text);
-        if (clip == null)
+        if (!clips.ContainsKey(text))
             return false;
         OnNarration?.Invoke(text);
-        audioSource.PlayOneShot(clip);
+        audioSource.PlayOneShot(clips[text]);
         return true;
     }
 
     private async Task FetchClip(string text)
     {
+        if (clips.ContainsKey(text))
+            return;
         var clip = await TextToSpeechGenerator.GetClipFromGoogle(text, voice);
         clips.Add(text, clip);
     }
 
     private IEnumerator FetchClipAndPlay(string text)
     {
-        yield return FetchClip(text);
+        yield return FetchClip(text).AsCoroutine();
         Play(text);
     }
 

@@ -7,11 +7,7 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
-    public event Func<Chat, Task> OnGeneration;
-
-    public int Count => queue.Count;
-
-    public bool DisableLock { get; set; }
+    public int IdeaCount => ideaQueue.Count;
 
     [SerializeField]
     private bool save = true;
@@ -24,24 +20,26 @@ public class ChatGenerator : MonoBehaviour
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponentsInChildren<ISubGenerator>());
     private ISubGenerator[] _generators;
 
-    private ConcurrentQueue<Idea> queue = new ConcurrentQueue<Idea>();
+    private ConcurrentQueue<Idea> ideaQueue = new ConcurrentQueue<Idea>();
 
     private void Start()
     {
         StartCoroutine(UpdateQueue());
-        ServerIntegration.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
+        RemoteSource.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
 
     private IEnumerator UpdateQueue()
     {
-        var idea = default(Idea);
-        yield return new WaitUntilTimer(() => queue.TryDequeue(out idea));
+        while (Application.isPlaying)
+        {
+            var idea = default(Idea);
+            yield return new WaitUntil(() => ideaQueue.TryDequeue(out idea));
 
-        if (idea != null)
-            yield return GenerateIdea(idea);
+            if (idea == null)
+                continue;
 
-        if (Application.isPlaying)
-            yield return UpdateQueue();
+            yield return GenerateAndPlay(idea).AsCoroutine();
+        }
     }
 
     public async Task<string> HandleRequest(Idea idea)
@@ -52,12 +50,7 @@ public class ChatGenerator : MonoBehaviour
 
     public void AddIdeaToQueue(Idea idea)
     {
-        if (queue.Count > 1)
-        {
-            Debug.LogWarning("Queue is full.");
-            return;
-        }
-        queue.Enqueue(idea);
+        ideaQueue.Enqueue(idea);
     }
 
     public void AddPromptToQueue(string prompt)
@@ -65,14 +58,13 @@ public class ChatGenerator : MonoBehaviour
         AddIdeaToQueue(new Idea(prompt));
     }
 
-    public async Task<Chat> GenerateIdea(Idea idea)
+    public async Task GenerateAndPlay(Idea idea)
     {
         var chat = await GenerateAndSave(idea);
         ChatManager.Instance.AddToPlayList(chat);
-        return chat;
     }
 
-    public async Task<Chat> GenerateAndSave(Idea idea)
+    private async Task<Chat> GenerateAndSave(Idea idea)
     {
         var chat = new Chat(idea);
 
@@ -84,28 +76,22 @@ public class ChatGenerator : MonoBehaviour
         {
             Debug.LogError(e);
         }
-
-        if (OnGeneration != null)
-            await OnGeneration(chat);
-
-        if (!DisableLock)
-        {
-            chat.Lock();
-            if (save) chat.Save();
-        }
-        DisableLock = false;
-
+        chat.Lock();
+        if (save)
+            chat.Save();
         return chat;
     }
 
-    public async Task<Chat> Generate(Chat chat)
+    private async Task<Chat> Generate(Chat chat)
     {
         if (_prompt != null)
         {
             var options = string.Join("\n - ", GetCharacterNames());
+            var secrets = string.Join(", ", GetCharacterNames(true));
             var idea = chat.Idea.Prompt;
-            var prompt = _prompt.Format(EpisodeToEpisodeContinuity.GroundState, options, idea);
-            var topic = await OpenAiIntegration.CompleteAsync(prompt, false);
+            var context = await EpisodeToEpisodeContinuity.GetLastEpisodeContext();
+            var prompt = _prompt.Format(context, options, idea, secrets);
+            var topic = await LLM.CompleteAsync(prompt, false);
 
             var characters = topic.Find("Characters");
             if (characters != null)
@@ -120,7 +106,7 @@ public class ChatGenerator : MonoBehaviour
             }
 
             chat.Topic = topic;
-            chat.Context = EpisodeToEpisodeContinuity.GroundState;
+            chat.Context = context;
         }
 
         foreach (var g in generators)
@@ -134,8 +120,12 @@ public class ChatGenerator : MonoBehaviour
         AddIdeaToQueue(new Idea(message));
     }
 
-    private string[] GetCharacterNames()
+    private string[] GetCharacterNames(bool legacy = false)
     {
-        return Actor.All.List.Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp())).Shuffle().ToArray();
+        return Actor.All.List
+            .Where(a => a.IsLegacy == legacy)
+            .Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp()))
+            .Shuffle()
+            .ToArray();
     }
 }

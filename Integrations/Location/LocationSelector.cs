@@ -54,7 +54,7 @@ public class LocationSelector : MonoBehaviour, ISubGenerator
             .ToArray());
         var characters = string.Join(", ", names);
         var prompt = _prompt.Format(options, characters, topic);
-        var message = await OpenAiIntegration.CompleteAsync(prompt, true);
+        var message = await LLM.CompleteAsync(prompt, true);
 
         var lines = message.Parse(names.Concat(new[] { "Location" }).ToArray());
         var location = lines.TryGetValue("Location", out var l) ? l : "Default";

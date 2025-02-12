@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class OBSIntegration : MonoBehaviour, IConfigurable<OBSConfigs>
+public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 {
     [SerializeField]
     private string OBSWebSocketURI = "ws://localhost:4455";

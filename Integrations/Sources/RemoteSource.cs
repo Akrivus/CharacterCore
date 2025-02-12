@@ -1,6 +1,8 @@
 ﻿
 using Newtonsoft.Json;
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,10 +13,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ServerIntegration : MonoBehaviour
+public class RemoteSource : MonoBehaviour, IConfigurable<HumanConfigs>
 {
-    public static ServerIntegration Instance => _instance ?? (_instance = FindFirstObjectByType<ServerIntegration>());
-    private static ServerIntegration _instance;
+    public static RemoteSource Instance { get; private set; }
 
     static Dictionary<string, Dictionary<string, Action<HttpListenerContext>>> routes = new Dictionary<string, Dictionary<string, Action<HttpListenerContext>>>()
     {
@@ -29,17 +30,34 @@ public class ServerIntegration : MonoBehaviour
     private Thread thread;
 
     [SerializeField]
-    private ChatGenerator Generator;
+    private ChatGenerator generator;
 
-    public bool IsRunning { get; private set; } = true;
+    public bool IsListening { get; private set; } = true;
+
+    public void Configure(HumanConfigs c)
+    {
+        for (var i = 0; i < c.Prompts.Count; i++)
+            if (File.Exists(c.Prompts[i]))
+                c.Prompts[i] = File.ReadAllText(c.Prompts[i]);
+        if (c.Prompts.Count > 0)
+            StartCoroutine(GeneratePrompts(c.Prompts));
+    }
+
+    private IEnumerator GeneratePrompts(List<string> prompts)
+    {
+        foreach (var prompt in prompts)
+            yield return generator.GenerateAndPlay(new Idea(prompt)).AsCoroutine();
+    }
 
     public void Awake()
     {
-        if (_instance != null)
+        if (Instance != null)
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
-        _instance = this;
+        Instance = this;
 
-        AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => Generator.AddPromptToQueue(s)));
+        ConfigManager.Instance.RegisterConfig(typeof(HumanConfigs), "human", (config) => Configure((HumanConfigs) config));
+
+        AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));
     }
 
@@ -55,13 +73,13 @@ public class ServerIntegration : MonoBehaviour
     private void OnApplicationQuit()
     {
         listener.Stop();
-        IsRunning = false;
+        IsListening = false;
     }
 
     private async void Listen()
     {
         listener.Start();
-        while (listener.IsListening && IsRunning)
+        while (listener.IsListening && IsListening)
             ProcessRequest(await listener.GetContextAsync());
         listener.Close();
     }

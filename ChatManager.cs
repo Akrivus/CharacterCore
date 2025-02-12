@@ -70,28 +70,25 @@ public class ChatManager : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(forceEpisodeName))
             AddToPlayList(await Chat.Load(forceEpisodeName));
-        if (playList.IsEmpty)
-            OnChatQueueEmpty?.Invoke();
         StartCoroutine(UpdatePlayList());
     }
 
     private IEnumerator UpdatePlayList()
     {
-        var chat = default(Chat);
+        while (Application.isPlaying)
+        {
+            if (playList.IsEmpty)
+                OnChatQueueEmpty?.Invoke();
 
-        if (playList.IsEmpty)
-            OnChatQueueEmpty?.Invoke();
+            var chat = default(Chat);
+            yield return new WaitUntilTimer(() => playList.TryDequeue(out chat));
 
-        yield return new WaitUntilTimer(() => playList.TryDequeue(out chat));
+            if (playList.IsEmpty && RemoveActorsOnCompletion)
+                yield return RemoveAllActors();
 
-        if (playList.IsEmpty && RemoveActorsOnCompletion)
-            yield return RemoveAllActors();
-
-        if (chat != null)
-            yield return Play(chat);
-
-        if (Application.isPlaying)
-            yield return UpdatePlayList();
+            if (chat != null)
+                yield return Play(chat);
+        }
     }
 
     private IEnumerator Play(Chat chat)
@@ -102,7 +99,7 @@ public class ChatManager : MonoBehaviour
         if (OnChatQueueTaken != null)
             yield return OnChatQueueTaken(chat);
 
-        yield return Initialize(chat);
+        yield return InitChat(chat);
         yield return PlayChat(chat);
     }
 
@@ -120,7 +117,7 @@ public class ChatManager : MonoBehaviour
         yield return PlayChat(chat);
     }
 
-    private IEnumerator Initialize(Chat chat)
+    private IEnumerator InitChat(Chat chat)
     {
         yield return RemoveActors(chat);
 

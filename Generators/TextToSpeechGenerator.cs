@@ -16,8 +16,8 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private void Awake()
     {
-        if (!string.IsNullOrEmpty(TTSIntegration.OpenAiApiKey))
-            _api = new OpenAIClient(new OpenAIAuthentication(TTSIntegration.OpenAiApiKey));
+        if (!string.IsNullOrEmpty(TTS.OpenAiApiKey))
+            _api = new OpenAIClient(new OpenAIAuthentication(TTS.OpenAiApiKey));
     }
 
     public async Task<Chat> Generate(Chat chat)
@@ -77,7 +77,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private static async Task<HttpResponseMessage> RequestFromGoogle(string text, string voice)
     {
-        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTSIntegration.GoogleApiKey}";
+        var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTS.GoogleApiKey}";
         var json = JsonConvert.SerializeObject(new Request(text, voice));
 
         var client = new HttpClient();
@@ -86,7 +86,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     public static async Task<AudioClip> GetClipFromGoogle(string text, string voice)
     {
-        if (string.IsNullOrEmpty(TTSIntegration.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
+        if (string.IsNullOrEmpty(TTS.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
             return null;
         var response = await RequestFromGoogle(text, voice);
         if (!response.IsSuccessStatusCode)

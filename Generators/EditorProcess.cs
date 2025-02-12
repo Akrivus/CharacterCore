@@ -16,7 +16,7 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
                 actor.Reference.Pronouns))
             .Distinct()
             .ToArray());
-        chat.Context = await OpenAiIntegration.CompleteAsync(
+        chat.Context = await LLM.CompleteAsync(
             _prompt.Format(chat.Topic, chat.Characters), false);
         return chat;
     }

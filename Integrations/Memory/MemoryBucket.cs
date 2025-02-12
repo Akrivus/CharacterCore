@@ -47,12 +47,12 @@ public class MemoryBucket
 
     public async Task<string> Recall(string text)
     {
-        var embeddings = await OpenAiIntegration.EmbedAsync(text);
+        var embeddings = await LLM.EmbedAsync(text);
         var memory = Memories.OrderBy(x => CosineSimilarity(x.Embeddings, embeddings)).First();
         return memory.Text;
     }
 
-    public string Get(int length = 1024)
+    public string Get(int length = 1800, bool exact = false)
     {
         var memory = Memories
             .OrderBy(x => x.Created)
@@ -60,7 +60,7 @@ public class MemoryBucket
             .Select(x => x.Text)
             .Where(s =>
             {
-                if (length <= s.Length)
+                if (length <= s.Length && exact)
                     return false;
                 length -= s.Length;
                 return length >= 0;
@@ -85,8 +85,7 @@ public class MemoryBucket
 
     private double[] Embed(string text)
     {
-        return new double[0];
-        return OpenAiIntegration.EmbedAsync(text).Result;
+        return new double[0]; // LLM.EmbedAsync(text).Result;
     }
 
     public static MemoryBucket Get(string name)

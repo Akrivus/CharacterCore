@@ -13,7 +13,7 @@ public class CueGenerator : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(Chat chat)
     {
         var prompt = _prompt.Format(chat.Topic);
-        var content = await OpenAiIntegration.CompleteAsync(prompt, true);
+        var content = await LLM.CompleteAsync(prompt, true);
         
         var lines = content.Split('\n').Where(x => x.StartsWith("- ")).Select(x => x.Substring(2));
         chat.Cues = lines.ToArray();

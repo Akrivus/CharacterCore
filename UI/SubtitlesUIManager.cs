@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class SubtitlesUIManager : MonoBehaviour
 {
-    public static SubtitlesUIManager Instance => _instance ?? (_instance = FindFirstObjectByType<SubtitlesUIManager>());
-    private static SubtitlesUIManager _instance;
+    public static SubtitlesUIManager Instance { get; private set; }
 
     [SerializeField]
     private TextMeshProUGUI _spot;
@@ -18,7 +17,7 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private void Awake()
     {
-        _instance = this;
+        Instance = this;
     }
 
     private void Start()

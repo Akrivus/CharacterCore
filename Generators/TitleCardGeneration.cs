@@ -9,7 +9,7 @@ public class TitleCardGeneration : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(Chat chat)
     {
-        var text = await OpenAiIntegration.CompleteAsync(_prompt.Format(chat.Log, chat.Characters), false);
+        var text = await LLM.CompleteAsync(_prompt.Format(chat.Log, chat.Characters), false);
         chat.Title = text.Find("Title");
         chat.Synopsis = text.Find("Synopsis");
         return chat;

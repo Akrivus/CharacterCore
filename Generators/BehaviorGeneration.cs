@@ -12,7 +12,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
         {
             var bucket = new MemoryBucket(actor.Name);
             await bucket.Load();
-            actor.Context = await OpenAiIntegration.CompleteAsync(
+            actor.Context = await LLM.CompleteAsync(
                 _prompt.Format(
                     chat.Topic,
                     chat.Idea.Prompt,

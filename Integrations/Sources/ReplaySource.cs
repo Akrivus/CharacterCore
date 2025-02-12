@@ -1,32 +1,31 @@
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class FolderIntegration : MonoBehaviour, IConfigurable<FolderConfigs>
+public class ReplaySource : MonoBehaviour, IConfigurable<ReplayConfigs>
 {
-    [SerializeField]
-    private ChatGenerator ChatGenerator;
-
     public string ReplayDirectory;
     public int ReplayRate = 80;
     public int ReplaysPerBatch = 20;
     public int MaxReplayAgeInMinutes = 1440;
-    public bool AutoPlay = true;
-    public bool AutoPlayOnEmpty = true;
 
     private List<string> replays = new List<string>();
+    private ConcurrentQueue<Chat> queue = new ConcurrentQueue<Chat>();
 
-    public void Configure(FolderConfigs c)
+    public string Name => "replay";
+    public bool IsRunning => queue.Count > 0;
+
+    public void Configure(ReplayConfigs c)
     {
         ReplayDirectory = c.ReplayDirectory;
         ReplayRate = c.ReplayRate;
         ReplaysPerBatch = c.ReplaysPerBatch;
         MaxReplayAgeInMinutes = c.MaxReplayAgeInMinutes;
-        AutoPlay = c.AutoPlay;
-        AutoPlayOnEmpty = c.AutoPlayOnEmpty;
 
         if (MaxReplayAgeInMinutes < 1)
             MaxReplayAgeInMinutes = 1440 * 365;
@@ -35,36 +34,29 @@ public class FolderIntegration : MonoBehaviour, IConfigurable<FolderConfigs>
 
         Chat.FolderName = ReplayDirectory;
 
-        for (var i = 0; i < c.Prompts.Count; i++)
-            if (File.Exists(c.Prompts[i]))
-                c.Prompts[i] = File.ReadAllText(c.Prompts[i]);
-        foreach (var prompt in c.Prompts)
-            ChatGenerator.AddIdeaToQueue(new Idea(prompt));
+        ChatManager.Instance.OnChatQueueEmpty += OnChatQueueEmpty;
+    }
 
-        if (AutoPlayOnEmpty)
-            ChatManager.Instance.OnChatQueueEmpty += ReplayEpisode;
-        if (AutoPlay)
-            ReplayEpisode();
+    public void OnChatQueueEmpty()
+    {
+        StartCoroutine(ReplayEpisodes());
+    }
 
+    private IEnumerator ReplayEpisodes()
+    {
+        yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
+        while (queue.TryDequeue(out var chat))
+            ChatManager.Instance.AddToPlayList(chat);
     }
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(ReplayConfigs), "folder", (config) => Configure((ReplayConfigs) config));
     }
 
     private void OnDestroy()
     {
         File.WriteAllLines("replays.txt", replays);
-    }
-
-    private async void ReplayEpisode()
-    {
-        var ideas = new List<Idea>();
-        await FetchFiles(ReplaysPerBatch);
-
-        foreach (var idea in ideas)
-            ChatGenerator.AddIdeaToQueue(idea);
     }
 
     private async Task FetchFiles(int count)
@@ -81,7 +73,7 @@ public class FolderIntegration : MonoBehaviour, IConfigurable<FolderConfigs>
             .ToList();
 
         foreach (var task in tasks)
-            ChatManager.Instance.AddToPlayList(await task);
+            queue.Enqueue(await task);
     }
 
     private async Task<Chat> LogThenLoad(string title)

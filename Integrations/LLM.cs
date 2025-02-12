@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
+public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 {
     public static string OPENAI_API_KEY = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     public static string OPENAI_API_URI = "https://api.openai.com";
@@ -63,7 +63,7 @@ public class OpenAiIntegration : MonoBehaviour, IConfigurable<OpenAIConfigs>
             messages.Add(response.Message);
 
             Debug.Log(response.Message.Content);
-            DiscordIntegration.PutInQueue("#chatgpt", new DiscordWebhookMessage(
+            DiscordManager.PutInQueue("#chatgpt", new DiscordWebhookMessage(
                 string.Empty, model, null,
                 new DiscordEmbed
                 {

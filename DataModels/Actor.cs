@@ -18,6 +18,8 @@ public class Actor : ScriptableObject
     public string[] Aliases;
     public string[] Players;
 
+    public string MapName;
+    public bool IsLegacy;
     public string Voice;
     public string ColorScheme;
     public string Costume;

@@ -15,7 +15,7 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         if (chat == null || chat.IsLocked)
             return chat;
         var prompt = _prompt.Format(chat.Idea.Prompt, chat.Characters, chat.Context);
-        var content = await OpenAiIntegration.CompleteAsync(prompt, false);
+        var content = await LLM.CompleteAsync(prompt, false);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         var actors = chat.Actors.ToList();

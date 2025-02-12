@@ -42,7 +42,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         var options = string.Join("\n- ", names);
         var prompt = _prompt.Format(faces, options, log);
 
-        var message = await OpenAiIntegration.CompleteAsync(prompt, true);
+        var message = await LLM.CompleteAsync(prompt, true);
         var lines = message.Parse(names);
         var reactions = new ChatNode.Reaction[lines.Count];
         var i = 0;

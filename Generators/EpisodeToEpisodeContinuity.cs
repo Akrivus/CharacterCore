@@ -17,17 +17,20 @@ public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(Chat chat)
     {
-        var memory = await OpenAiIntegration.CompleteAsync(
+        var memory = await LLM.CompleteAsync(
             _prompt.Format(chat.Log, GroundState), false);
         await _bucket.Add(memory);
 
         var buckets = MemoryBucket.Buckets.Values.ToArray();
         foreach (var bucket in buckets)
-        {
-            bucket.Clean();
             await bucket.Save();
-        }
 
         return chat;
+    }
+
+    public static async Task<string> GetLastEpisodeContext()
+    {
+        await _bucket.Load();
+        return _bucket.Get();
     }
 }

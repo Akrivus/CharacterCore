@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class TTSIntegration : MonoBehaviour, IConfigurable<TTSConfigs>
+public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
 {
     public static string GoogleApiKey;   
     public static string OpenAiApiKey;
