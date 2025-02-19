@@ -8,8 +8,8 @@ using UnityEngine;
 
 public static class StringExtensions
 {
-    private static readonly Regex actionRegex = new Regex(@"^[\s]*([*(\[]([^[\])*]+)[\])*])|([*(\[]([^[\])*]+)[\])*])[\s,.!?]*$");
-    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\*\-—–+×÷=~“‘(')’”#@&%$€¥£]");
+    private static readonly Regex actionRegex = new Regex(@"([*(\[]([^[\])*]+)[\])*])");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\-—–+×÷=~“‘(')’”#@&%$€¥£]");
     private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])(?=\s+|\z)");
 
     public static string Chomp(this string str)
@@ -117,9 +117,10 @@ public static class StringExtensions
         return text;
     }
 
-    public static Idea ToIdea(this TextAsset str)
+    public static Idea ToIdea(this TextAsset str, params object[] args)
     {
-        return new Idea(str.text);
+        var text = str.Format(args);
+        return new Idea(text);
     }
 
     public static string ToFileSafeString(this string str)

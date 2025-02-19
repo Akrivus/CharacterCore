@@ -15,6 +15,7 @@ public class ActorController : MonoBehaviour
 
     public AudioSource Voice => voice;
     public AudioSource Sound => sound;
+    public Camera Camera { get; set; }
 
     public Color TextColor;
 

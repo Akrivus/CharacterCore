@@ -6,6 +6,14 @@ public class ItemController : AutoActor, ISubChats, ISubNode
     private MeshRenderer itemRenderer;
     private Vector3 itemPosition;
 
+    [Header("Rotation")]
+    [SerializeField]
+    private float xAngleOffset;
+    [SerializeField]
+    private float yAngleOffset;
+    [SerializeField]
+    private float zAngleOffset;
+
     private void Start()
     {
         itemPosition = itemRenderer.transform.localPosition;
@@ -17,7 +25,11 @@ public class ItemController : AutoActor, ISubChats, ISubNode
         var sin = Mathf.Sin(time) * ActorController.Sentiment.Score * (ActorController.IsTalking ? 4f : 1f);
         var position = itemPosition - Vector3.forward * sin;
 
+        itemRenderer.transform.LookAt(ActorController.Camera.transform);
+
         itemRenderer.transform.Rotate(Vector3.forward, Mathf.Sin(time) * 0.025f);
+        itemRenderer.transform.Rotate(xAngleOffset, yAngleOffset, zAngleOffset);
+
         itemRenderer.transform.localPosition = Vector3.Lerp(
             itemRenderer.transform.localPosition,
             position,

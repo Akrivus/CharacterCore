@@ -98,7 +98,7 @@ public class ChatGenerator : MonoBehaviour
             {
                 chat.Actors = characters.Split(',')
                     .Select(n => n.Trim())
-                    .Select(n => ActorConverter.Find(n))
+                    .Select(n => Actor.All[n])
                     .OfType<Actor>()
                     .Select(a => new ActorContext(a))
                     .ToArray();

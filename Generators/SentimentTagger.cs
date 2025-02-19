@@ -7,16 +7,23 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     [SerializeField]
     private TextAsset _prompt;
 
+    [SerializeField]
+    private bool doForNodes = true;
+
     private string log = "";
 
     public async Task<Chat> Generate(Chat chat)
     {
         var names = chat.Names;
 
-        foreach (var node in chat.Nodes)
-            if (node.Reactions == null || node.Reactions.Length == 0)
-                await GenerateForNode(node, names);
-        await GenerateForChat(chat, names, chat.Context);
+        if (doForNodes)
+            foreach (var node in chat.Nodes)
+                if (node.Reactions == null || node.Reactions.Length == 0)
+                    await GenerateForNode(node, names);
+        if (string.IsNullOrEmpty(chat.Context))
+            await GenerateForChat(chat, names, chat.Topic);
+        else
+            await GenerateForChat(chat, names, chat.Context);
         
         return chat;
     }

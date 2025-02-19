@@ -4,8 +4,8 @@ using UnityEngine;
 [Serializable]
 public class Idea
 {
-    [field: SerializeField, TextArea(1, 6)]
     public string Prompt { get; set; }
+    public string Text { get; set; }
 
     public string Author { get; set; }
     public string Source { get; set; }
@@ -22,14 +22,17 @@ public class Idea
 
     public Idea(string prompt) : this()
     {
-        Prompt = prompt;
+        Text = Prompt = prompt;
     }
 
     public Idea(string title, string text, string author, string source, string slug = null)
     {
         if (!string.IsNullOrEmpty(text))
-            title = $"{title}: {text}";
-        Prompt = title;
+            text = $"{title}: {text}";
+        else
+            text = title;
+        Text = title;
+        Prompt = text;
         Author = author;
         Source = source;
 

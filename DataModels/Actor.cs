@@ -29,6 +29,7 @@ public class Actor : ScriptableObject
 
     public float SpeakingRate;
     public float Pitch;
+    public float Volume;
     public Color Color;
 
     public Color Color1;
@@ -59,8 +60,9 @@ public class Actor : ScriptableObject
         public static void Initialize()
         {
             var actors = Resources.LoadAll<Actor>("Actors");
-            foreach (var chatter in actors)
-                All.Add(chatter);
+            foreach (var actor in actors)
+                All.Add(actor);
+            All.List.Sort((a, b) => a.IsLegacy.CompareTo(b.IsLegacy));
         }
 
         public static Actor Random()

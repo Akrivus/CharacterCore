@@ -41,6 +41,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerator ReplayEpisodes()
     {
+        if (!ChatManager.Instance.RemoveActorsOnCompletion)
+            yield break;
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
         while (queue.TryDequeue(out var chat))
             ChatManager.Instance.AddToPlayList(chat);

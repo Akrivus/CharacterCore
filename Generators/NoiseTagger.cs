@@ -11,8 +11,6 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
     [SerializeField]
     private TextAsset _prompt;
 
-    private string context;
-
     private void Awake()
     {
         if (SoundGroups == null)

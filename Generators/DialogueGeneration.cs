@@ -6,6 +6,9 @@ using UnityEngine;
 public class DialogueGeneration : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
+    private bool fastMode = false;
+
+    [SerializeField]
     private TextAsset _prompt;
 
     private int _attempts = 0;
@@ -15,7 +18,7 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         if (chat == null || chat.IsLocked)
             return chat;
         var prompt = _prompt.Format(chat.Idea.Prompt, chat.Characters, chat.Context);
-        var content = await LLM.CompleteAsync(prompt, false);
+        var content = await LLM.CompleteAsync(prompt, fastMode);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         var actors = chat.Actors.ToList();
@@ -23,11 +26,18 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         foreach (var line in lines)
         {
             var parts = line.Split(':');
+
+            if (parts.Length <= 1)
+                continue;
             var name = parts[0];
             var text = string.Join(":", parts.Skip(1));
             var sentences = text.ToSentences();
-
-            var actor = ActorConverter.Find(name);
+            
+            var actor = actors.Select((a) => a.Reference).ToList().Find((a) => a.Aliases.Contains(name));
+            if (actor == null)
+                actor = Actor.All[name];
+            if (actor == null)
+                actor = Actor.All.List.Except(actors.Select(a => a.Reference)).Shuffle().FirstOrDefault();
             if (actor != null)
             {
                 foreach (var sentence in sentences)

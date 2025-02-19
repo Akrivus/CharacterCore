@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -7,46 +8,56 @@ public class SubtitlesUIManager : MonoBehaviour
     public static SubtitlesUIManager Instance { get; private set; }
 
     [SerializeField]
-    private TextMeshProUGUI _spot;
+    private TextMeshProUGUI premierLabel;
 
     [SerializeField]
-    private TextMeshProUGUI _subtitle;
+    private TextMeshProUGUI splashScreen;
 
     [SerializeField]
-    private TextMeshProUGUI _shadow;
+    private TextMeshProUGUI subtitle;
+
+    [SerializeField]
+    private TextMeshProUGUI subtitleShadow;
+
+    private float titleDuration = 5f;
+    private float splashDuration = 2f;
+    private string[] splashes;
+
+    public void Configure(SplashScreenConfigs c)
+    {
+        titleDuration = c.TitleDuration;
+        splashDuration = c.SplashDuration;
+        splashes = c.Splashes;
+
+        ChatManager.Instance.OnIntermission += StartSplashScreen;
+        ChatManager.Instance.OnChatNodeActivated += OnNodeActivated;
+    }
 
     private void Awake()
     {
         Instance = this;
+        ConfigManager.Instance.RegisterConfig(typeof(SplashScreenConfigs), "splash", (config) => Configure((SplashScreenConfigs)config));
     }
 
-    private void Start()
-    {
-        ChatManager.Instance.AfterIntermission += OnQueueTaken;
-        ChatManager.Instance.OnChatNodeActivated += OnNodeActivated;
-        ChatManager.Instance.OnChatQueueEmpty += ClearSubtitle;
-    }
-
-    private void OnQueueTaken(Chat chat)
-    {
-        if (_spot != null)
-            _spot.enabled = chat.NewEpisode;
-        ClearSubtitle();
-    }
-
-    public void OnNodeActivated(ChatNode node)
+    private void OnNodeActivated(ChatNode node)
     {
         SetSubtitle(node.Actor.Title, node.Say, node.Actor.Color
             .Lighten()
             .Lighten());
     }
 
+    public void ClearSubtitles()
+    {
+        subtitle.text = string.Empty;
+        subtitleShadow.text = string.Empty;
+    }
+
     public void SetSubtitle(string name, string text, Color color)
     {
         var content = $"<b><u>{name}</u></b>\n{text.Scrub()}";
-        _subtitle.text = content;
-        _subtitle.color = color;
-        _shadow.text = "<mark=#000000aa>" + content;
+        subtitle.text = content;
+        subtitle.color = color;
+        subtitleShadow.text = "<mark=#000000aa>" + content;
     }
 
     public void SetSubtitle(string name, string text)
@@ -54,9 +65,52 @@ public class SubtitlesUIManager : MonoBehaviour
         SetSubtitle(name, text, Color.white);
     }
 
-    public void ClearSubtitle()
+    private IEnumerator StartSplashScreen(Chat chat)
     {
-        _subtitle.text = string.Empty;
-        _shadow.text = string.Empty;
+        if (!ChatManager.Instance.RemoveActorsOnCompletion)
+            yield break;
+        splashScreen.text = string.Empty;
+        yield return FadeOut();
+
+        if (splashes.Length > 0)
+        {
+            splashScreen.text = splashes[Random.Range(0, splashes.Length)];
+            yield return FadeIn();
+
+            yield return new WaitForSeconds(splashDuration);
+            yield return FadeOut();
+        }
+
+        splashScreen.text = chat.Title;
+        yield return FadeIn();
+
+        SetSubtitle(chat.Idea.Source, chat.Idea.Text);
+
+        yield return new WaitForSeconds(titleDuration);
+        yield return FadeOut();
+    }
+
+    private IEnumerator FadeIn()
+    {
+        var c = splashScreen.color = new Color(splashScreen.color.r, splashScreen.color.g, splashScreen.color.b, 0);
+        var t = 0.0f;
+
+        while (t < 1.0f)
+        {
+            splashScreen.color = new Color(c.r, c.g, c.b, t += Time.deltaTime);
+            yield return new WaitForEndOfFrame();
+        }
+    }
+
+    private IEnumerator FadeOut()
+    {
+        var c = splashScreen.color = new Color(splashScreen.color.r, splashScreen.color.g, splashScreen.color.b, 1);
+        var t = 1.0f;
+
+        while (t > 0.0f)
+        {
+            splashScreen.color = new Color(c.r, c.g, c.b, t -= Time.deltaTime);
+            yield return new WaitForEndOfFrame();
+        }
     }
 }

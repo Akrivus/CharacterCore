@@ -4,6 +4,9 @@ using UnityEngine;
 public class BehaviorGeneration : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
+    private bool fastMode = false;
+
+    [SerializeField]
     private TextAsset _prompt;
 
     public async Task<Chat> Generate(Chat chat)
@@ -18,7 +21,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
                     chat.Idea.Prompt,
                     actor.Prompt,
                     bucket.Get()),
-                false);
+                fastMode);
         }
         return chat;
     }

@@ -21,8 +21,6 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
     [SerializeField]
     private int EmptyQueueChances = 2;
 
-    private ClientWebSocket client;
-
     private bool isObsRecording = false;
     private bool isObsStreaming = false;
 
@@ -123,34 +121,32 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
     public async void SendRequestAsync(string requestType)
     {
-        using (client = new ClientWebSocket())
+        using (var client = new ClientWebSocket())
         {
-            await ConnectAsync(client);
-            await SendAsync(new Message<Request<object>>(6, new Request<object>(requestType)));
+            try
+            {
+                await ConnectAsync(client);
+                await SendAsync(client, new Message<Request<object>>(6, new Request<object>(requestType)));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+            }
         }
     }
 
-    public async void SendRequestAsync<T>(string requestType, T requestData)
+    private async Task SendAsync<T>(ClientWebSocket client, Message<T> m)
     {
-        using (client = new ClientWebSocket())
-        {
-            await ConnectAsync(client);
-            await SendAsync(new Message<Request<T>>(6, new Request<T>(requestType, requestData)));
-        }
+        await SendStringAsync(client, JsonConvert.SerializeObject(m));
     }
 
-    private async Task SendAsync<T>(Message<T> m)
-    {
-        await SendStringAsync(JsonConvert.SerializeObject(m));
-    }
-
-    private async Task SendStringAsync(string message)
+    private async Task SendStringAsync(ClientWebSocket client, string message)
     {
         var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
         await client.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
     }
 
-    private async Task<string> ReceiveAsync(int bufferSize = 1024)
+    private async Task<string> ReceiveAsync(ClientWebSocket client, int bufferSize = 1024)
     {
         var buffer = new ArraySegment<byte>(new byte[bufferSize]);
         var result = await client.ReceiveAsync(buffer, CancellationToken.None);
@@ -160,9 +156,9 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
     private async Task ConnectAsync(ClientWebSocket client)
     {
         await client.ConnectAsync(new Uri(OBSWebSocketURI), CancellationToken.None)
-            .ContinueWith(async (_) => await ReceiveAsync())
-            .ContinueWith(async (_) => await SendAsync(new Message<Handshake>(1, new Handshake())))
-            .ContinueWith(async (_) => await ReceiveAsync());
+            .ContinueWith(async (_) => await ReceiveAsync(client))
+            .ContinueWith(async (_) => await SendAsync(client, new Message<Handshake>(1, new Handshake())))
+            .ContinueWith(async (_) => await ReceiveAsync(client));
     }
 
     private class Message<T>

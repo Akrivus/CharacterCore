@@ -12,13 +12,8 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 {
     private static string[] OpenAiVoices = new string[] { "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse" };
 
+    private static OpenAIClient api => _api ??= new OpenAIClient(new OpenAIAuthentication(TTS.OpenAiApiKey));
     private static OpenAIClient _api;
-
-    private void Awake()
-    {
-        if (!string.IsNullOrEmpty(TTS.OpenAiApiKey))
-            _api = new OpenAIClient(new OpenAIAuthentication(TTS.OpenAiApiKey));
-    }
 
     public async Task<Chat> Generate(Chat chat)
     {
@@ -66,7 +61,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private async Task GenerateWithOpenAI(ChatNode node)
     {
-        var response = await _api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(node.Say,
+        var response = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(node.Say,
             voice: new OpenAI.Voice(node.Actor.Voice),
             responseFormat: SpeechResponseFormat.PCM));
         node.Frequency = response.AudioClip.frequency;
