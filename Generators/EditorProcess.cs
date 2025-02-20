@@ -20,7 +20,11 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
             .Distinct()
             .ToArray());
         chat.Context = await LLM.CompleteAsync(
-            _prompt.Format(chat.Topic, chat.Characters), fastMode);
+            _prompt.Format(
+                chat.Topic,
+                chat.Idea.Prompt,
+                chat.Characters),
+            fastMode);
         return chat;
     }
 }
