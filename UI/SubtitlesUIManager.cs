@@ -67,27 +67,32 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private IEnumerator StartSplashScreen(Chat chat)
     {
-        if (!ChatManager.Instance.RemoveActorsOnCompletion)
-            yield break;
-        splashScreen.text = string.Empty;
-        yield return FadeOut();
-
-        if (splashes.Length > 0)
+        if (ChatManager.Instance.RemoveActorsOnCompletion)
         {
-            splashScreen.text = splashes[Random.Range(0, splashes.Length)];
-            yield return FadeIn();
-
-            yield return new WaitForSeconds(splashDuration);
+            splashScreen.text = string.Empty;
             yield return FadeOut();
+
+            if (splashes.Length > 0)
+            {
+                splashScreen.text = splashes[Random.Range(0, splashes.Length)];
+                yield return FadeIn();
+
+                yield return new WaitForSeconds(splashDuration);
+                yield return FadeOut();
+            }
+
+            splashScreen.text = chat.Title;
+            yield return FadeIn();
         }
 
-        splashScreen.text = chat.Title;
-        yield return FadeIn();
+        if (ChatManager.Instance.RemoveActorsOnCompletion || chat.Idea.Source.StartsWith("r/"))
+            SetSubtitle(chat.Idea.Source, chat.Idea.Text);
 
-        SetSubtitle(chat.Idea.Source, chat.Idea.Text);
-
-        yield return new WaitForSeconds(titleDuration);
-        yield return FadeOut();
+        if (ChatManager.Instance.RemoveActorsOnCompletion)
+        {
+            yield return new WaitForSeconds(titleDuration);
+            yield return FadeOut();
+        }
     }
 
     private IEnumerator FadeIn()

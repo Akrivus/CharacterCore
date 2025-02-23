@@ -28,6 +28,11 @@ public class ChatGenerator : MonoBehaviour
         ServerSource.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
 
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
+    }
+
     private IEnumerator UpdateQueue()
     {
         while (Application.isPlaying)

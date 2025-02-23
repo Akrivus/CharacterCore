@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
 public class DialogueGeneration : MonoBehaviour, ISubGenerator
 {
+    private static string[] PluralNames = new string[] { "Everyone", "All" };
+
     [SerializeField]
     private bool fastMode = false;
 
@@ -22,32 +25,29 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         var actors = chat.Actors.ToList();
+        var refs = actors.Select(a => a.Reference).ToList();
+
+        var nodes = new List<ChatNode>();
 
         foreach (var line in lines)
         {
             var parts = line.Split(':');
-
             if (parts.Length <= 1)
                 continue;
-            var name = parts[0];
+            var names = GetNames(parts[0], refs);
             var text = string.Join(":", parts.Skip(1));
-            var sentences = text.ToSentences();
-            
-            var actor = actors.Select((a) => a.Reference).ToList().Find((a) => a.Aliases.Contains(name));
-            if (actor == null)
-                actor = Actor.All[name];
-            if (actor == null)
-                actor = Actor.All.List.Except(actors.Select(a => a.Reference)).Shuffle().FirstOrDefault();
-            if (actor != null)
-            {
-                foreach (var sentence in sentences)
-                    chat.Nodes.Add(new ChatNode(actor, sentence));
-                if (chat.Actors.Get(actor.Name) == null)
-                    actors.Add(new ActorContext(actor));
-            }
+
+            nodes.AddRange(AddNodes(names[0], text, refs, false));
+            foreach (var n in names.Skip(1))
+                nodes.AddRange(AddNodes(n, text, refs, true));
         }
 
+        foreach (var n in nodes)
+            if (actors.Get(n.Actor.Name) == null)
+                actors.Add(new ActorContext(n.Actor));
+
         chat.Actors = actors.ToArray();
+        chat.Nodes = nodes;
 
         if (_attempts < 3 && chat.Nodes.Count < 2)
         {
@@ -57,5 +57,48 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         _attempts = 0;
 
         return chat;
+    }
+
+    private List<ChatNode> AddNodes(string name, string text, List<Actor> actors, bool async)
+    {
+        var actor = actors.Find((a) => a.Aliases.Contains(name));
+        if (actor == null)
+            FindNewActor(name, text, actors, out actor);
+        var nodes = new List<ChatNode>();
+        if (actor == null)
+            return nodes;
+
+        var sentences = text.ToSentences();
+
+        nodes.Add(new ChatNode(actor, sentences[0]));
+        foreach (var sentence in sentences.Skip(1))
+        {
+            var node = new ChatNode(actor, sentence);
+            if (async)
+                node.MarkAsync();
+            nodes.Add(node);
+        }
+
+        return nodes;
+    }
+
+    private string[] GetNames(string name, List<Actor> actors)
+    {
+        var names = new List<string>();
+        if (PluralNames.Contains(name))
+            return actors.Select(a => a.Name).ToArray();
+        var actor = actors.Find((a) => a.Aliases.Contains(name));
+        if (actor != null)
+            return new string[] { actor.Name };
+        return name.Split(" and ");
+    }
+
+    private void FindNewActor(string name, string text, List<Actor> actors, out Actor actor)
+    {
+        actor = Actor.All[name];
+        if (actor != null)
+            return;
+        actor = Actor.All["X"];
+        text = $"{name} posted: {text}";
     }
 }

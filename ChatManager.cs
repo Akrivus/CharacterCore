@@ -55,6 +55,11 @@ public class ChatManager : MonoBehaviour
         await StartPlayList();
     }
 
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
+    }
+
     public void ForceRemoveAllActors()
     {
         StartCoroutine(RemoveAllActors());
@@ -147,21 +152,17 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator Activate(ChatNode node)
     {
-        yield return TryAddActor(node.Actor);
         OnChatNodeActivated?.Invoke(node);
 
         var actor = actors.Get(node.Actor);
         if (actor == null)
             actor = actors.First();
         yield return actor.Activate(node);
-
-        yield return SetActorReactions(node);
+        SetActorReactions(node);
     }
 
-    private IEnumerator SetActorReactions(ChatNode node)
+    private void SetActorReactions(ChatNode node)
     {
-        foreach (var reaction in node.Reactions)
-            yield return TryAddActor(reaction.Actor);
         var reactions = node.Reactions
             .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
             .ToDictionary(a => a, a => node.Reactions
@@ -172,9 +173,17 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator TryAddActor(Actor actor)
     {
-        if (actors.Get(actor) != null)
-            yield break;
         var context = NowPlaying.Actors.Get(actor);
+
+        var controller = actors.Get(actor);
+        if (controller != null)
+        {
+            controller.Context = context;
+            controller.Sentiment = context.Reference.DefaultSentiment;
+            yield return controller.Initialize(NowPlaying);
+            yield break;
+        }
+
         yield return AddActor(context);
     }
 
