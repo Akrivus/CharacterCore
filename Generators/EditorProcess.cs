@@ -10,6 +10,9 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
     [SerializeField]
     private TextAsset _prompt;
 
+    [SerializeField]
+    private bool autoComplete = false;
+
     public async Task<Chat> Generate(Chat chat)
     {
         chat.Characters = string.Join("\n", chat.Actors
@@ -19,12 +22,17 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
                 actor.Context))
             .Distinct()
             .ToArray());
-        chat.Context = await LLM.CompleteAsync(
-            _prompt.Format(
-                chat.Topic,
-                chat.Idea.Prompt,
-                chat.Characters),
-            fastMode);
+        if (autoComplete)
+            chat.Context = chat.Topic + "\n\n"
+                + "### Character Behaviors\n\n"
+                + chat.Characters;
+        else
+            chat.Context = await LLM.CompleteAsync(
+                _prompt.Format(
+                    chat.Topic,
+                    chat.Idea.Prompt,
+                    chat.Characters),
+                fastMode);
         return chat;
     }
 }

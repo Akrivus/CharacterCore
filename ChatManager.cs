@@ -140,8 +140,12 @@ public class ChatManager : MonoBehaviour
             yield return AddActor(context);
 
         foreach (var ac in actors)
-            if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
-                ac.Sentiment = chat.Actors.Get(ac.Actor).Sentiment;
+        {
+            var actor = chat.Actors.Get(ac.Actor);
+            ac.Sentiment = actor?.Sentiment ?? ac.Actor.DefaultSentiment;
+            yield return ac.Initialize(chat);
+            OnActorAdded?.Invoke(chat, ac);
+        }
 
         if (chat.IsLocked)
             foreach (var node in chat.Nodes)
@@ -171,22 +175,6 @@ public class ChatManager : MonoBehaviour
             reaction.Key.Sentiment = reaction.Value;
     }
 
-    private IEnumerator TryAddActor(Actor actor)
-    {
-        var context = NowPlaying.Actors.Get(actor);
-
-        var controller = actors.Get(actor);
-        if (controller != null)
-        {
-            controller.Context = context;
-            controller.Sentiment = context.Reference.DefaultSentiment;
-            yield return controller.Initialize(NowPlaying);
-            yield break;
-        }
-
-        yield return AddActor(context);
-    }
-
     private IEnumerator AddActor(ActorContext context)
     {
         if (context == null)
@@ -200,8 +188,6 @@ public class ChatManager : MonoBehaviour
         controller.Sentiment = context.Reference.DefaultSentiment;
 
         actors.Add(controller);
-        yield return controller.Initialize(NowPlaying);
-        OnActorAdded?.Invoke(NowPlaying, controller);
     }
 
     private IEnumerator RemoveActors(Chat chat)
