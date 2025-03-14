@@ -11,6 +11,9 @@ public class ChatManager : MonoBehaviour
     public static ChatManager Instance => _instance ?? (_instance = FindFirstObjectByType<ChatManager>());
     private static ChatManager _instance;
 
+    public static bool IsPaused { get; set; }
+    public static bool SkipToEnd { get; set; }
+
     public event Action OnChatQueueEmpty;
     public event Action<Chat> OnChatQueueAdded;
 
@@ -108,10 +111,14 @@ public class ChatManager : MonoBehaviour
 
         yield return InitChat(chat);
         yield return PlayChat(chat);
+
+        SkipToEnd = false;
     }
 
     private IEnumerator PlayChat(Chat chat)
     {
+        yield return new WaitUntil(() => !IsPaused);
+
         if (chat.NextNode == null && !chat.IsLocked)
             yield return new WaitUntilTimer(() => chat.NextNode != null);
         
@@ -153,6 +160,9 @@ public class ChatManager : MonoBehaviour
     private IEnumerator Activate(ChatNode node)
     {
         OnChatNodeActivated?.Invoke(node);
+
+        if (SkipToEnd)
+            yield break;
 
         var actor = actors.Get(node.Actor);
         if (actor == null)

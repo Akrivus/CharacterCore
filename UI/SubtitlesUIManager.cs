@@ -85,7 +85,7 @@ public class SubtitlesUIManager : MonoBehaviour
             yield return FadeIn();
         }
 
-        if (ChatManager.Instance.RemoveActorsOnCompletion || chat.Idea.Source.StartsWith("r/"))
+        if (chat.Idea.Source.StartsWith("r/"))
             SetSubtitle(chat.Idea.Source, chat.Idea.Text);
 
         if (ChatManager.Instance.RemoveActorsOnCompletion)

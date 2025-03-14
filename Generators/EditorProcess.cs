@@ -19,12 +19,17 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
                 actor.Context))
             .Distinct()
             .ToArray());
-        chat.Context = await LLM.CompleteAsync(
-            _prompt.Format(
+        if (_prompt != null)
+            chat.Context = await LLM.CompleteAsync(
+                _prompt.Format(
+                    chat.Topic,
+                    chat.Idea.Prompt,
+                    chat.Characters),
+                fastMode);
+        else
+            chat.Context = string.Format("{0}\n\n### Characters:\n{1}",
                 chat.Topic,
-                chat.Idea.Prompt,
-                chat.Characters),
-            fastMode);
+                chat.Characters);
         return chat;
     }
 }

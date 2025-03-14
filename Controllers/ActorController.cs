@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class ActorController : MonoBehaviour
 {
+    public static float GlobalSpeakingRate = 1.0f;
+
     public event Action<ChatNode> OnActivation;
     public event Action<ActorController> OnActorUpdate;
     public event Action<Sentiment> OnSentimentUpdate;
@@ -108,9 +110,11 @@ public class ActorController : MonoBehaviour
         voice.clip = clip;
         voice.Play();
 
+        var time = clip.length * voice.pitch * Actor.SpeakingRate * GlobalSpeakingRate;
+
         if (!node.Async)
-            yield return new WaitUntilTimer(() => !voice.isPlaying, clip.length);
-        _totalTalkTime += clip.length * voice.pitch * Actor.SpeakingRate;
+            yield return new WaitUntilTimer(() => !voice.isPlaying, time);
+        _totalTalkTime += time;
     }
 
     public IEnumerator Initialize(Chat chat)

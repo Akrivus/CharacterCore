@@ -13,7 +13,8 @@ public class LipsController : AutoActor, ISubChats
 
     private void Update()
     {
-        UpdateLips();
+        if (sentiment != ActorController.Sentiment && ActorController.Sentiment != null)
+            UpdateLips();
     }
 
     private void UpdateLips()
@@ -23,6 +24,8 @@ public class LipsController : AutoActor, ISubChats
 
     public void Initialize(Chat chat)
     {
+        sentiment = Actor.DefaultSentiment;
+
         var context = chat.Actors.Get(Actor);
         if (context != null)
             sentiment = context.Sentiment;
