@@ -12,6 +12,9 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
     private bool fastMode = false;
 
     [SerializeField]
+    private bool splitSentences = true;
+
+    [SerializeField]
     private TextAsset _prompt;
 
     private int _attempts = 0;
@@ -68,8 +71,10 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         if (actor == null)
             return nodes;
 
-        var sentences = text.ToSentences();
-
+        var sentences = new string[] { text };
+        if (splitSentences)
+            sentences = text.ToSentences();
+        
         nodes.Add(new ChatNode(actor, sentences[0]));
         foreach (var sentence in sentences.Skip(1))
         {

@@ -15,6 +15,11 @@ public class ActorController : MonoBehaviour
     public float VoiceVolume => voice.GetAmplitude();
     public bool IsTalking => voice.isPlaying && VoiceVolume > 0.0f;
 
+    public float Speed { get; private set; }
+    public float Energy { get; private set; }
+
+    public Transform LookTarget { get; set; }
+    public Transform LookObject => voice.transform;
     public AudioSource Voice => voice;
     public AudioSource Sound => sound;
     public Camera Camera { get; set; }
@@ -30,7 +35,8 @@ public class ActorController : MonoBehaviour
     [SerializeField]
     private float delay = 1.2f;
 
-    private float _totalTalkTime;
+    private float talkTime = 0.0f;
+    private float averageVolume = 1.0f;
 
     public ActorContext Context
     {
@@ -56,6 +62,7 @@ public class ActorController : MonoBehaviour
     
     private Sentiment _sentiment;
     private ActorContext _context;
+    private Vector3 position;
 
     private ISubActor[] sub_Actor;
     private ISubSentiment[] sub_Sentiment;
@@ -74,21 +81,24 @@ public class ActorController : MonoBehaviour
 
     private void Update()
     {
-        if (IsTalking || _totalTalkTime <= 0) return;
-        _totalTalkTime -= Time.deltaTime / delay;
+        Speed = (transform.position - position).magnitude * Time.deltaTime;
+        position = transform.position;
+        averageVolume = Mathf.Lerp(averageVolume, VoiceVolume, Time.deltaTime);
+        talkTime += Time.deltaTime * (IsTalking ? 1.0f : 0.0f);
     }
 
     public void OnUpdateActorCallbacks(ActorContext context)
     {
+        Sentiment = context.Sentiment;
         foreach (var subActor in sub_Actor)
             subActor.UpdateActor(context);
         OnActorUpdate?.Invoke(this);
-
-        Sentiment = context.Sentiment;
     }
 
     public void OnUpdateSentimentCallbacks(Sentiment sentiment)
     {
+        if (sentiment == null) return;
+        Energy = sentiment.Score - Energy;
         foreach (var sub in sub_Sentiment)
             sub.UpdateSentiment(sentiment);
         OnSentimentUpdate?.Invoke(sentiment);
@@ -110,11 +120,11 @@ public class ActorController : MonoBehaviour
         voice.clip = clip;
         voice.Play();
 
-        var time = clip.length * voice.pitch * Actor.SpeakingRate * GlobalSpeakingRate;
+        averageVolume = 1.0f;
+        talkTime = 0.0f;
 
         if (!node.Async)
-            yield return new WaitUntilTimer(() => !voice.isPlaying, time);
-        _totalTalkTime += time;
+            yield return new WaitUntilTimer(IsNoLongerTalking);
     }
 
     public IEnumerator Initialize(Chat chat)
@@ -130,5 +140,10 @@ public class ActorController : MonoBehaviour
             sub.Deactivate();
         Destroy(gameObject);
         yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));
+    }
+
+    private bool IsNoLongerTalking()
+    {
+        return !voice.isPlaying || talkTime > 2.0f && averageVolume < 0.002f;
     }
 }

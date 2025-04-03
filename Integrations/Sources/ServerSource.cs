@@ -72,8 +72,12 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
 
     private void OnApplicationQuit()
     {
-        listener.Stop();
+        if (listener != null)
+            listener.Stop();
+        if (thread != null)
+            thread.Abort();
         IsListening = false;
+        StopAllCoroutines();
     }
 
     private async void Listen()
@@ -114,7 +118,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
         response.Close();
     }
 
-    private void ProcessFileRequest(HttpListenerContext context, string path)
+    public static void ProcessFileRequest(HttpListenerContext context, string path)
     {
         var file = Path.Combine(Application.streamingAssetsPath, path);
         var text = File.ReadAllText(file);
@@ -122,7 +126,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
         context.Response.WriteString(text, "text/html");
     }
 
-    private void ProcessBodyString(HttpListenerContext context, Action<string> handler)
+    public static void ProcessBodyString(HttpListenerContext context, Action<string> handler)
     {
         var req = context.Request;
         var res = context.Response;

@@ -15,6 +15,12 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField]
     private TextAsset _prompt;
 
+    [SerializeField]
+    private Actor[] actors;
+
+    [SerializeField]
+    private SpawnPointManager[] locations;
+
     private string slug => name.Replace(' ', '-').ToLower();
 
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponentsInChildren<ISubGenerator>());
@@ -24,11 +30,11 @@ public class ChatGenerator : MonoBehaviour
 
     private void Start()
     {
+        ServerSource.AddRoute("POST", $"/generate/{slug}", (_) => ServerSource.ProcessBodyString(_, AddPromptToQueue));
         StartCoroutine(UpdateQueue());
-        ServerSource.AddApiRoute<Idea, string>("POST", $"/generate?with={slug}", HandleRequest);
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit()
     {
         StopAllCoroutines();
     }
@@ -38,7 +44,7 @@ public class ChatGenerator : MonoBehaviour
         while (Application.isPlaying)
         {
             var idea = default(Idea);
-            yield return new WaitUntil(() => ideaQueue.TryDequeue(out idea));
+            yield return new WaitUntilTimer(() => ideaQueue.TryDequeue(out idea), 120);
 
             if (idea == null)
                 continue;
@@ -91,11 +97,12 @@ public class ChatGenerator : MonoBehaviour
     {
         if (_prompt != null)
         {
-            var options = string.Join("\n - ", GetCharacterNames());
+            var options = "- " + string.Join("\n - ", GetCharacterNames());
             var secrets = string.Join(", ", GetCharacterNames(true));
+            var locations = "- " + string.Join("\n - ", GetLocationNames());
             var idea = chat.Idea.Prompt;
             var context = await EpisodeToEpisodeContinuity.GetLastEpisodeContext();
-            var prompt = _prompt.Format(context, options, idea, secrets);
+            var prompt = _prompt.Format(context, options, idea, secrets, locations);
             var topic = await LLM.CompleteAsync(prompt, false);
 
             var characters = topic.Find("Characters");
@@ -108,6 +115,13 @@ public class ChatGenerator : MonoBehaviour
                     .Select(a => new ActorContext(a))
                     .ToArray();
                 topic = topic.Replace("Characters: " + characters, "");
+            }
+
+            var location = topic.Find("Location");
+            if (location != null)
+            {
+                chat.Location = location;
+                topic = topic.Replace("Location: " + location, "");
             }
 
             chat.Topic = topic;
@@ -127,9 +141,22 @@ public class ChatGenerator : MonoBehaviour
 
     private string[] GetCharacterNames(bool legacy = false)
     {
-        return Actor.All.List
-            .Where(a => a.IsLegacy == legacy)
-            .Select(k => string.Format("{0} ({1})", k.Name, k.Pronouns.Chomp()))
+        var list = (legacy || actors.Length == 0) ? Actor.All.List : actors.ToList();
+        if (legacy)
+            list = list
+                .Except(actors)
+                .OrderBy(a => a.IsLegacy)
+                .ToList();
+        return list
+            .Select(a => string.Format("{0} ({1})", a.Name, a.Pronouns.Chomp()))
+            .ToArray();
+    }
+
+    private string[] GetLocationNames()
+    {
+        var list = locations.Length == 0 ? ChatManager.Instance.SpawnPoints : locations;
+        return list
+            .Select(k => k.name)
             .Shuffle()
             .ToArray();
     }

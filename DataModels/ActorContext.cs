@@ -13,6 +13,7 @@ public class ActorContext
     public string SoundGroup { get; set; }
     public string SpawnPoint { get; set; }
     public string Context { get; set; }
+    public string Memory { get; set; }
 
     [JsonIgnore]
     public string Name => Reference.Name;

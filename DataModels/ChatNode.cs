@@ -57,10 +57,17 @@ public class ChatNode
     public ChatNode(Actor actor, string text)
     {
         Actor = actor;
+        Reactions = new Reaction[0];
+        Edit(text);
+    }
+
+    public void Edit(string text)
+    {
+        if (text.StartsWith("- "))
+            text = text.Substring(1).Trim();
         Line = Text = text;
         Say = text.Scrub();
         Actions = text.Rinse();
-        Reactions = new Reaction[0];
     }
 
     public ChatNode MarkAsync()

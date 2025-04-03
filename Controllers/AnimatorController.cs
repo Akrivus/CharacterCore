@@ -16,32 +16,22 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
     private uLipSyncTexture _lipSync;
 
     [SerializeField]
-    private Transform headBone;
+    private Transform eyebrows;
 
     [SerializeField]
-    private Transform facePlane;
+    private float minEyebrowY = -0.1f;
+
+    [SerializeField]
+    private float maxEyebrowY = 0.1f;
 
     [SerializeField]
     private float speed = 2f;
     private Sentiment _sentiment;
 
-    [Header("Face Plane Transform")]
-    public float x;
-    public float y;
-    public float z;
-    public float xAngle;
-    public float yAngle;
-    public float zAngle;
+    private Vector3 position;
 
     private void Update()
     {
-        if (headBone == null || facePlane == null)
-            return;
-        facePlane.transform.position = headBone.position;
-        facePlane.transform.rotation = headBone.rotation;
-
-        facePlane.transform.Rotate(xAngle, yAngle, zAngle);
-        facePlane.transform.Translate(x, y, z);
         _animator.SetBool("Talking", ActorController.IsTalking);
 
         var mood = Mathf.Lerp(
@@ -50,14 +40,36 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
             Time.deltaTime * speed);
         _animator.SetFloat("Mood", mood);
 
+        var energy = Mathf.Lerp(
+            _animator.GetFloat("Energy"),
+            ActorController.Energy,
+            Time.deltaTime * speed);
+        _animator.SetFloat("Energy", energy);
+        _animator.SetFloat("Speed", ActorController.Speed);
+
         var weight = ActorController.VoiceVolume;
         if (ActorController.IsTalking)
             weight += 0.5f;
         weight = Mathf.Lerp(
-            _animator.GetLayerWeight(1),
+            _animator.GetLayerWeight(2),
             weight,
             Time.deltaTime * speed);
-        _animator.SetLayerWeight(1, weight);
+        _animator.SetLayerWeight(2, weight);
+    }
+
+    private void LateUpdate()
+    {
+        if (eyebrows == null)
+            return;
+        var score = (_sentiment.Score + 1f) / 2f;
+        var position = new Vector3(
+            eyebrows.localPosition.x,
+            Mathf.Lerp(minEyebrowY, maxEyebrowY, score),
+            eyebrows.localPosition.z);
+        eyebrows.localPosition = Vector3.Lerp(
+            eyebrows.localPosition,
+            position,
+            Time.deltaTime * speed);
     }
 
     public void Activate(ChatNode node)
@@ -67,6 +79,9 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
 
     public void UpdateActor(ActorContext context)
     {
+        if (_genderSpecificControllers.Length == 0)
+            return;
+
         var gender = _genderSpecificControllers
             .FirstOrDefault(c => c.Pronouns == context.Reference.Pronouns);
         if (gender == null)
@@ -88,6 +103,20 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
         _lipSync.initialTexture = sentiment.Lips;
         _lipSync.textures.First().texture = sentiment.Lips;
         _sentiment = sentiment;
+
+        if (ActorController.LookTarget != null)
+            position = ActorController.LookTarget.position;
+    }
+
+    private void OnAnimatorIK(int layerIndex)
+    {
+        if (ActorController.LookTarget == null)
+            return;
+        var score = Math.Abs(_sentiment.Score);
+        _animator.SetLookAtPosition(position);
+        _animator.SetLookAtWeight(1.0f,
+            ActorController.Energy,
+            score + 0.5f, score * 0.5f, 0.75f);
     }
 
     [Serializable]

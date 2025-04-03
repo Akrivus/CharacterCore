@@ -29,12 +29,9 @@ public class ChatManager : MonoBehaviour
 
     public event Action<ChatNode> OnChatNodeActivated;
 
+    public SpawnPointManager[] SpawnPoints => spawnPoints;
     public bool RemoveActorsOnCompletion { get; set; } = true;
     public Chat NowPlaying { get; private set; }
-    public List<Chat> PlayList => playList
-        .ToList()
-        .Prepend(NowPlaying)
-        .ToList();
 
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
@@ -43,7 +40,9 @@ public class ChatManager : MonoBehaviour
     private string forceEpisodeName;
 
     [SerializeField]
-    private Transform[] spawnPoints;
+    private SpawnPointManager[] spawnPoints;
+
+    private SpawnPointManager spawnPointManager;
 
     private void Awake()
     {
@@ -58,7 +57,7 @@ public class ChatManager : MonoBehaviour
         await StartPlayList();
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit()
     {
         StopAllCoroutines();
     }
@@ -112,6 +111,8 @@ public class ChatManager : MonoBehaviour
         yield return InitChat(chat);
         yield return PlayChat(chat);
 
+        PostChatActorMemories(chat);
+
         SkipToEnd = false;
     }
 
@@ -133,9 +134,17 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator InitChat(Chat chat)
     {
+        if (spawnPointManager != null)
+            spawnPointManager.UnRegister();
         yield return RemoveActors(chat);
 
         NowPlaying = chat;
+
+        if (!string.IsNullOrEmpty(chat.Location))
+            spawnPointManager = spawnPoints.FirstOrDefault(s => s.name == chat.Location);
+        if (spawnPointManager == null)
+            spawnPointManager = spawnPoints.Shuffle().FirstOrDefault();
+        spawnPointManager.Register();
 
         BeforeIntermission?.Invoke();
         yield return OnIntermission?.Invoke(chat);
@@ -168,17 +177,20 @@ public class ChatManager : MonoBehaviour
         if (actor == null)
             actor = actors.First();
         yield return actor.Activate(node);
-        SetActorReactions(node);
+        SetActorReactions(actor, node);
     }
 
-    private void SetActorReactions(ChatNode node)
+    private void SetActorReactions(ActorController actor, ChatNode node)
     {
         var reactions = node.Reactions
             .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
             .ToDictionary(a => a, a => node.Reactions
             .First(r => r.Actor == a.Actor).Sentiment);
         foreach (var reaction in reactions)
+        {
             reaction.Key.Sentiment = reaction.Value;
+            reaction.Key.LookTarget = actor.LookObject.transform;
+        }
     }
 
     private IEnumerator TryAddActor(Actor actor)
@@ -202,8 +214,13 @@ public class ChatManager : MonoBehaviour
         if (context == null)
             yield break;
 
-        var spawnPoint = spawnPoints.FirstOrDefault(s => s.childCount == 0);
-        var obj = Instantiate(context.Reference.Prefab, spawnPoint);
+        var spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.name == context.Name);
+        if (spawnPoint == null)
+            spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+        var obj = Instantiate(context.Reference.Prefab, spawnPoint.transform);
+
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
 
         var controller = obj.GetComponent<ActorController>();
         controller.Context = context;
@@ -216,9 +233,9 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator RemoveActors(Chat chat)
     {
-        var outgoing = actors
-            .Where(a => !chat.Actors.Select(ac => ac.Reference).Contains(a.Actor))
-            .ToArray();
+        var outgoing = actors.ToList();
+        if (!RemoveActorsOnCompletion)
+            outgoing = actors.Where(a => !chat.Actors.Select(ac => ac.Reference).Contains(a.Actor)).ToList();
         foreach (var actor in outgoing)
             yield return RemoveActor(actor);
     }
@@ -235,5 +252,17 @@ public class ChatManager : MonoBehaviour
         yield return controller.Deactivate();
         actors.Remove(controller);
         OnActorRemoved?.Invoke(NowPlaying, controller);
+    }
+
+    private void PostChatActorMemories(Chat chat)
+    {
+        DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
+            string.Empty, null, null,
+            new DiscordEmbed
+            {
+                Title = string.Empty,
+                Description = string.Join("\n\n", chat.Actors.Select(a => $"## {a.Name}\n{a.Memory}")),
+                Color = 0x62517F
+            }));
     }
 }

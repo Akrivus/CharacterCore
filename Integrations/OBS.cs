@@ -18,13 +18,9 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
     private bool DoSplitRecording = false;
     [SerializeField]
     private bool OnlyNewEpisodes = true;
-    [SerializeField]
-    private int EmptyQueueChances = 2;
 
     private bool isObsRecording = false;
     private bool isObsStreaming = false;
-
-    private int emptyQueueChance = 0;
 
     public void Configure(OBSConfigs c)
     {
@@ -33,19 +29,16 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         IsRecording = c.IsRecording;
         DoSplitRecording = c.DoSplitRecording;
         OnlyNewEpisodes = c.OnlyNewEpisodes;
-        EmptyQueueChances = c.EmptyQueueChances;
+
+        if (IsRecording)
+            ChatManager.Instance.AfterIntermission += StopOrStartRecording;
+        if (DoSplitRecording)
+            ChatManager.Instance.BeforeIntermission += SplitRecording;
+
+        ChatManager.Instance.OnChatQueueEmpty += StopRecording;
 
         if (IsStreaming)
             StartStreaming();
-        if (IsRecording)
-        {
-            if (OnlyNewEpisodes)
-                ChatManager.Instance.AfterIntermission += StopOrStartRecording;
-            if (DoSplitRecording)
-                ChatManager.Instance.BeforeIntermission += SplitRecording;
-            ChatManager.Instance.OnChatQueueEmpty += CheckEmptyQueue;
-            ChatManager.Instance.BeforeIntermission += StartRecording;
-        }
     }
 
     private void Awake()
@@ -61,72 +54,65 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             StopRecording();
     }
 
-    private void CheckEmptyQueue()
-    {
-        if (emptyQueueChance >= EmptyQueueChances)
-        {
-            emptyQueueChance = 0;
-            StopRecording();
-        }
-        else
-            emptyQueueChance++;
-    }
-
-    public void StartRecording()
+    public async void StartRecording()
     {
         if (isObsRecording)
             return;
         isObsRecording = true;
-        SendRequestAsync("StartRecord");
+        await SendRequestAsync("StartRecord");
     }
 
-    public void StopRecording()
+    public async void StopRecording()
     {
         if (!isObsRecording)
             return;
         isObsRecording = false;
-        SendRequestAsync("StopRecord");
+        await SendRequestAsync("StopRecord");
     }
 
-    public void StopOrStartRecording(Chat _)
+    public void StopOrStartRecording(Chat chat)
     {
-        if (_.NewEpisode)
+        if (chat.NewEpisode && OnlyNewEpisodes)
             StartRecording();
-        else
+        else if (OnlyNewEpisodes)
             StopRecording();
+        else if (!isObsRecording)
+            StartRecording();
     }
 
-    public void SplitRecording()
+    public async void SplitRecording()
     {
         if (!isObsRecording)
             return;
-        SendRequestAsync("SplitRecordFile");
+        await SendRequestAsync("SplitRecordFile");
     }
 
-    public void StartStreaming()
+    public async void StartStreaming()
     {
         if (isObsStreaming)
             return;
         isObsStreaming = true;
-        SendRequestAsync("StartStreaming");
+        await SendRequestAsync("StartStreaming");
     }
 
-    public void StopStreaming()
+    public async void StopStreaming()
     {
         if (!isObsStreaming)
             return;
         isObsStreaming = false;
-        SendRequestAsync("StopStreaming");
+        await SendRequestAsync("StopStreaming");
     }
 
-    public async void SendRequestAsync(string requestType)
+    public async Task SendRequestAsync(string requestType)
     {
         using (var client = new ClientWebSocket())
         {
             try
             {
                 await ConnectAsync(client);
-                await SendAsync(client, new Message<Request<object>>(6, new Request<object>(requestType)));
+
+                if (client.State.HasFlag(WebSocketState.Open))
+                    await SendAsync(client, new Message<Request<object>>(6, new Request<object>(requestType)));
             }
             catch (Exception e)
             {

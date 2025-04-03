@@ -7,6 +7,5 @@ public class OBSConfigs : IConfig
     public bool IsStreaming { get; set; }
     public bool IsRecording { get; set; }
     public bool DoSplitRecording { get; set; }
-    public int EmptyQueueChances { get; set; }
     public bool OnlyNewEpisodes { get; set; }
 }

@@ -32,6 +32,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         Chat.FolderName = ReplayDirectory;
 
         ChatManager.Instance.OnChatQueueEmpty += OnChatQueueEmpty;
+        OnChatQueueEmpty();
     }
 
     public void OnChatQueueEmpty()
@@ -44,8 +45,10 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         if (!ChatManager.Instance.RemoveActorsOnCompletion)
             yield break;
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
-        while (queue.TryDequeue(out var chat))
-            ChatManager.Instance.AddToPlayList(chat);
+        
+        var chat = default(Chat);
+        yield return new WaitUntilTimer(() => queue.TryDequeue(out chat), 30);
+        ChatManager.Instance.AddToPlayList(chat);
     }
 
     private void Awake()
@@ -53,8 +56,9 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs) config));
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit()
     {
+        StopAllCoroutines();
         File.WriteAllLines("replays.txt", replays);
     }
 

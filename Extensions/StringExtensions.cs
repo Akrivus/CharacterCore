@@ -8,8 +8,8 @@ using UnityEngine;
 
 public static class StringExtensions
 {
-    private static readonly Regex actionRegex = new Regex(@"(?<![‘“'"])[*\[(]([^\]\)*]+)[\]*)](?!["'”’])");
-    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\-—–+×÷=~“‘("')’”#@&%$€¥£]");
+    private static readonly Regex actionRegex = new Regex(@"(?<![‘“""'])[*\[(]([^\]\)*]+)[\]*)](?!['""”’])");
+    private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\-—–+×÷=~“‘(""')’”#@&%$€¥£]");
     private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])(?=\s+|\z)");
 
     public static string Chomp(this string str)

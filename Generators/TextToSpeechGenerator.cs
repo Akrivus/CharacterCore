@@ -61,11 +61,9 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private async Task GenerateWithOpenAI(ChatNode node)
     {
-        var response = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(node.Say,
-            voice: new OpenAI.Voice(node.Actor.Voice),
-            responseFormat: SpeechResponseFormat.PCM));
-        node.Frequency = response.AudioClip.frequency;
-        node.AudioClip = response.AudioClip;
+        var clip = await GetClipFromOpenAI(node.Say, node.Actor.Voice);
+        node.Frequency = clip.frequency;
+        node.AudioClip = clip;
 
         node.New = true;
     }
@@ -89,6 +87,14 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         var json = await response.Content.ReadAsStringAsync();
         var output = JsonConvert.DeserializeObject<Output>(json);
         return output.AudioData.ToAudioClip();
+    }
+
+    public static async Task<AudioClip> GetClipFromOpenAI(string text, string voice)
+    {
+        return await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
+            voice: new OpenAI.Voice(voice),
+            model: new OpenAI.Models.Model("gpt-4o-mini-tts"),
+            responseFormat: SpeechResponseFormat.PCM));
     }
 
     class Request

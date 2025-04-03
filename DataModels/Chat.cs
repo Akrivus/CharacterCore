@@ -24,6 +24,8 @@ public class Chat
     public List<ChatNode> Nodes { get; set; }
     public Idea Idea { get; set; }
 
+    public string Vibe { get; set; }
+
     public string TextureData { get; set; }
     public string[] Cues { get; set; }
     public string EndingTrigger { get; set; }
