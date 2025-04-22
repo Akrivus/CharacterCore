@@ -35,4 +35,9 @@ public static class ColorExtensions
         byte[] bytes = texture.EncodeToPNG();
         return Convert.ToBase64String(bytes);
     }
+
+    public static int ToDiscordColor(this Color color)
+    {
+        return (int)(color.r * 255) << 16 | (int)(color.g * 255) << 8 | (int)(color.b * 255);
+    }
 }

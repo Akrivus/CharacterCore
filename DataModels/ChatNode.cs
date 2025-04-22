@@ -58,13 +58,6 @@ public class ChatNode
     {
         Actor = actor;
         Reactions = new Reaction[0];
-        Edit(text);
-    }
-
-    public void Edit(string text)
-    {
-        if (text.StartsWith("- "))
-            text = text.Substring(1).Trim();
         Line = Text = text;
         Say = text.Scrub();
         Actions = text.Rinse();

@@ -101,7 +101,7 @@ public class ChatGenerator : MonoBehaviour
             var secrets = string.Join(", ", GetCharacterNames(true));
             var locations = "- " + string.Join("\n - ", GetLocationNames());
             var idea = chat.Idea.Prompt;
-            var context = await EpisodeToEpisodeContinuity.GetLastEpisodeContext();
+            var context = await MemoryBucket.GetContext(slug);
             var prompt = _prompt.Format(context, options, idea, secrets, locations);
             var topic = await LLM.CompleteAsync(prompt, false);
 
@@ -141,10 +141,11 @@ public class ChatGenerator : MonoBehaviour
 
     private string[] GetCharacterNames(bool legacy = false)
     {
-        var list = (legacy || actors.Length == 0) ? Actor.All.List : actors.ToList();
+        var cast = actors.Length == 0 ? Actor.All.List : actors.ToList();
+        var list = legacy ? Actor.All.List : cast;
         if (legacy)
             list = list
-                .Except(actors)
+                .Except(cast)
                 .OrderBy(a => a.IsLegacy)
                 .ToList();
         return list

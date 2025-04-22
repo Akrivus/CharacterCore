@@ -42,6 +42,9 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private SpawnPointManager[] spawnPoints;
 
+    [SerializeField]
+    private Transform[] fallbackSpawnPoints;
+
     private SpawnPointManager spawnPointManager;
 
     private void Awake()
@@ -144,7 +147,8 @@ public class ChatManager : MonoBehaviour
             spawnPointManager = spawnPoints.FirstOrDefault(s => s.name == chat.Location);
         if (spawnPointManager == null)
             spawnPointManager = spawnPoints.Shuffle().FirstOrDefault();
-        spawnPointManager.Register();
+        if (spawnPointManager != null)
+            spawnPointManager.Register();
 
         BeforeIntermission?.Invoke();
         yield return OnIntermission?.Invoke(chat);
@@ -214,10 +218,17 @@ public class ChatManager : MonoBehaviour
         if (context == null)
             yield break;
 
-        var spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.name == context.Name);
-        if (spawnPoint == null)
-            spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
-        var obj = Instantiate(context.Reference.Prefab, spawnPoint.transform);
+        var spawnPointTransform = fallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+
+        if (spawnPointManager != null)
+        {
+            var spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.name == context.Name);
+            if (spawnPoint == null)
+                spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+            spawnPointTransform = spawnPoint.transform;
+        }
+
+        var obj = Instantiate(context.Reference.Prefab, spawnPointTransform);
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
@@ -256,13 +267,16 @@ public class ChatManager : MonoBehaviour
 
     private void PostChatActorMemories(Chat chat)
     {
-        DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
-            string.Empty, null, null,
-            new DiscordEmbed
-            {
-                Title = string.Empty,
-                Description = string.Join("\n\n", chat.Actors.Select(a => $"## {a.Name}\n{a.Memory}")),
-                Color = 0x62517F
-            }));
+        foreach (var actor in chat.Actors)
+        {
+            DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
+                string.Empty, null, null,
+                new DiscordEmbed
+                {
+                    Title = $"## {a.Costume} {actor.Name}'s Memory",
+                    Description = actor.Memory,
+                    Color = actor.Color1.ToDiscordColor()
+                }));
+        }
     }
 }

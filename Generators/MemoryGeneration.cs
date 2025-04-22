@@ -1,7 +1,5 @@
-﻿using OpenAI.Models;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using UnityEngine;
-using Utilities.WebRequestRest;
 
 public class MemoryGeneration : MonoBehaviour, ISubGenerator
 {
@@ -15,7 +13,7 @@ public class MemoryGeneration : MonoBehaviour, ISubGenerator
     {
         foreach (var actor in chat.Actors)
         {
-            var bucket = MemoryBucket.Get(actor.Name);
+            var bucket = await MemoryBucket.Get(actor.Name);
             var memory = await LLM.CompleteAsync(
                 _prompt.Format(chat.Log, actor.Prompt, bucket.Get()), fastMode);
             actor.Memory = memory;

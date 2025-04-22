@@ -83,7 +83,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
     private async void Listen()
     {
         listener.Start();
-        while (listener.IsListening && IsListening)
+        while (listener.IsListening && IsListening && Application.isPlaying)
             ProcessRequest(await listener.GetContextAsync());
         listener.Close();
     }

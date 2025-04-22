@@ -16,7 +16,6 @@ public class MemoryBucket
     {
         Name = name;
         Memories = new List<Memory>();
-        Buckets[name] = this;
     }
 
     public async Task Add(string text)
@@ -52,7 +51,7 @@ public class MemoryBucket
         return memory.Text;
     }
 
-    public string Get(int length = 1800, bool exact = false)
+    public string Get(int length = 2048, bool exact = false)
     {
         var memory = Memories
             .OrderBy(x => x.Created)
@@ -88,11 +87,22 @@ public class MemoryBucket
         return new double[0]; // LLM.EmbedAsync(text).Result;
     }
 
-    public static MemoryBucket Get(string name)
+    public static async Task<MemoryBucket> Get(string name)
     {
         if (Buckets.ContainsKey(name))
             return Buckets[name];
-        return new MemoryBucket(name);
+
+        var bucket = new MemoryBucket(name);
+        await bucket.Load();
+
+        Buckets[name] = bucket;
+        return bucket;
+    }
+
+    public static async Task<string> GetContext(string channel)
+    {
+        var bucket = await Get("#" + channel);
+        return bucket.Get();
     }
 
     private static double CosineSimilarity(double[] a, double[] b)

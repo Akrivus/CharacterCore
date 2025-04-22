@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using UnityEngine;
 
 public class SequelGeneration : MonoBehaviour, ISubGenerator
 {
-    [SerializeField]
-    private ChatGenerator generator;
-
     [SerializeField]
     private bool fastMode = false;
 
@@ -18,25 +10,29 @@ public class SequelGeneration : MonoBehaviour, ISubGenerator
     private TextAsset _prompt;
 
     [SerializeField]
-    private int maxSequels = 1;
+    private ChatGenerator[] iterations;
 
-    private int sequels = 0;
+    private int iteration = 0;
+
+    private string slug => name.Replace(' ', '-').ToLower();
 
     public async Task<Chat> Generate(Chat chat)
     {
-        if (chat.Idea.Prompt.Contains("[SEQUEL]") && sequels < maxSequels)
+        if (chat.Idea.Prompt.Contains("[SEQUEL]") && iteration < iterations.Length)
         {
             var states = "";
             foreach (var actor in chat.Actors)
                 states += $"#### {actor.Name}\n\n" + actor.Memory + "\n\n";
+            var generator = iterations[iteration % iterations.Length];
+            var context = await MemoryBucket.GetContext(slug);
             var prompt = await LLM.CompleteAsync(
-                _prompt.Format(EpisodeToEpisodeContinuity.GroundState, states), fastMode);
+                _prompt.Format(context, states), fastMode);
             generator.AddPromptToQueue(prompt);
-            sequels++;
+            iteration++;
         }
         else
         {
-            sequels = 0;
+            iteration = 0;
         }
         return chat;
     }

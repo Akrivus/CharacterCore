@@ -49,7 +49,7 @@ public class Chat
     private bool _new;
 
     [JsonIgnore]
-    public string Log => string.Join("\n", Nodes.Select(n => $"{n.Actor.Name}: {n.Say}"));
+    public string Log => string.Join("\n", Nodes.Select(n => $"{n.Actor.Name}: {n.Line}"));
 
     [JsonIgnore]
     public string[] Names => Actors.Select(a => a.Name).ToArray();
