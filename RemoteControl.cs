@@ -13,6 +13,51 @@ public class RemoteControl : MonoBehaviour
     private string pageUpPath;
     private string pageDownPath;
 
+    public virtual void Select()
+    {
+        ChatManager.IsPaused = !ChatManager.IsPaused;
+    }
+
+    public virtual void LeftArrow()
+    {
+
+    }
+
+    public virtual void RightArrow()
+    {
+
+    }
+
+    public virtual void UpArrow()
+    {
+
+    }
+
+    public virtual void DownArrow()
+    {
+
+    }
+
+    public virtual void PageUp()
+    {
+        Launch(pageUpPath);
+    }
+
+    public virtual void PageDown()
+    {
+        Launch(pageDownPath);
+    }
+
+    public virtual void MenuButton()
+    {
+        Application.Quit();
+    }
+
+    public virtual void BackButton()
+    {
+
+    }
+
     public void Configure(RemoteControlConfigs c)
     {
         buttonActions = new Dictionary<string, Action>
@@ -55,50 +100,5 @@ public class RemoteControl : MonoBehaviour
             UseShellExecute = true
         });
         Application.Quit();
-    }
-
-    private void Select()
-    {
-        ChatManager.IsPaused = !ChatManager.IsPaused;
-    }
-
-    private void LeftArrow()
-    {
-
-    }
-
-    private void RightArrow()
-    {
-
-    }
-
-    private void UpArrow()
-    {
-
-    }
-
-    private void DownArrow()
-    {
-
-    }
-
-    private void PageUp()
-    {
-        Launch(pageUpPath);
-    }
-
-    private void PageDown()
-    {
-        Launch(pageDownPath);
-    }
-
-    private void MenuButton()
-    {
-        Application.Quit();
-    }
-
-    private void BackButton()
-    {
-
     }
 }
