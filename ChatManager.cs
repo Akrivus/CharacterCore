@@ -273,9 +273,9 @@ public class ChatManager : MonoBehaviour
                 string.Empty, null, null,
                 new DiscordEmbed
                 {
-                    Title = $"## {a.Costume} {actor.Name}'s Memory",
+                    Title = $"{actor.Costume} {actor.Name}'s Memory",
                     Description = actor.Memory,
-                    Color = actor.Color1.ToDiscordColor()
+                    Color = actor.Reference.Color1.ToDiscordColor()
                 }));
         }
     }
