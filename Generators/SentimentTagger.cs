@@ -42,7 +42,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
         var edit = sentiment.Find("Edit");
         if (!string.IsNullOrEmpty(edit))
-            node.Say = edit;
+            node.SetText(edit);
 
         node.Thoughts = sentiment.Find("Delivery");
         node.Reactions = ParseReactions(sentiment, names);
