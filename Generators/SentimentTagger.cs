@@ -28,7 +28,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForChat(Chat chat, string[] names, string context)
     {
-        var sentiment = await GetSentiment(names, chat.Log, "Analyze initial conversation state based on context.", chat.Context);
+        var sentiment = await GetSentiment(names, chat.Log, "Analyze initial conversation state based on context.", chat.Context, string.Empty);
         var reactions = ParseReactions(sentiment, names);
         foreach (var reaction in reactions)
             chat.Actors.Get(reaction.Actor).Sentiment = reaction.Sentiment;
@@ -37,8 +37,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     public async Task GenerateForNode(Chat chat, ChatNode node, string[] names)
     {
         var actor = chat.Actors.Get(node.Actor);
-        var context = actor.Prompt + "\n\n" + actor.Context;
-        var sentiment = await GetSentiment(names, chat.Log, node.Say, context);
+        var sentiment = await GetSentiment(names, chat.Log, node.Say, actor.Context, actor.Prompt);
 
         var edit = sentiment.Find("Edit");
         if (!string.IsNullOrEmpty(edit))
@@ -48,11 +47,11 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         node.Reactions = ParseReactions(sentiment, names);
     }
 
-    private async Task<string> GetSentiment(string[] names, string transcript, string line, string context)
+    private async Task<string> GetSentiment(string[] names, string transcript, string line, string context, string text)
     {
         var faces = "- " + string.Join("\n- ", Sentiment.All.Select(s => s.Name));
         var options = "- " + string.Join("\n- ", names);
-        var prompt = _prompt.Format(faces, options, transcript, line, context);
+        var prompt = _prompt.Format(faces, options, transcript, line, context, text);
 
         return await LLM.CompleteAsync(prompt, true);
     }
