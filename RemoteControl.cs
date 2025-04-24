@@ -75,6 +75,9 @@ public class RemoteControl : MonoBehaviour
 
         pageUpPath = c.PageUpPath;
         pageDownPath = c.PageDownPath;
+
+        if (Application.isEditor)
+            return;
         InputSystem.onAnyButtonPress.Call(OnPress);
     }
 

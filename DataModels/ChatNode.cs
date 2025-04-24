@@ -58,7 +58,6 @@ public class ChatNode
     {
         Actor = actor;
         Reactions = new Reaction[0];
-        Actions = text.Rinse();
         SetText(text);
     }
 
@@ -68,6 +67,7 @@ public class ChatNode
             text = text.Substring(2);
         Line = Text = text;
         Say = text.Scrub();
+        Actions = text.Rinse();
     }
 
     public ChatNode MarkAsync()

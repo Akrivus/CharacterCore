@@ -29,6 +29,9 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
     private HttpListener listener;
     private Thread thread;
 
+    private CancellationTokenSource cts = new CancellationTokenSource();
+    private CancellationToken token;
+
     [SerializeField]
     private ChatGenerator generator;
 
@@ -63,6 +66,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
 
     private void Start()
     {
+        token = cts.Token;
         listener = new HttpListener();
         listener.Prefixes.Add($"http://{GetLocalIPAddress()}:8080/");
         listener.Prefixes.Add($"http://localhost:8080/");
@@ -74,8 +78,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
     {
         if (listener != null)
             listener.Stop();
-        if (thread != null)
-            thread.Abort();
+        cts.Cancel();
         IsListening = false;
         StopAllCoroutines();
     }
@@ -83,7 +86,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
     private async void Listen()
     {
         listener.Start();
-        while (listener.IsListening && IsListening && Application.isPlaying)
+        while (!token.IsCancellationRequested && listener.IsListening && IsListening)
             ProcessRequest(await listener.GetContextAsync());
         listener.Close();
     }

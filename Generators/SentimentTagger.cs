@@ -37,7 +37,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     public async Task GenerateForNode(Chat chat, ChatNode node, string[] names)
     {
         var actor = chat.Actors.Get(node.Actor);
-        var sentiment = await GetSentiment(names, chat.Log, node.Say, actor.Context, actor.Prompt);
+        var sentiment = await GetSentiment(names, chat.Log, node.Line, actor.Context, actor.Prompt);
 
         var edit = sentiment.Find("Edit");
         if (!string.IsNullOrEmpty(edit))

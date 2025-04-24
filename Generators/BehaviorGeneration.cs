@@ -13,8 +13,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
     {
         foreach (var actor in chat.Actors)
         {
-            var bucket = new MemoryBucket(actor.Name);
-            await bucket.Load();
+            var bucket = await MemoryBucket.Get(actor.Name);
             actor.Context = await LLM.CompleteAsync(
                 _prompt.Format(
                     chat.Topic,

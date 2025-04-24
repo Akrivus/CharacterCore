@@ -113,7 +113,8 @@ public static class StringExtensions
     {
         var text = str.text;
         for (var i = 0; i < args.Length; ++i)
-            text = text.Replace("{" + i + "}", args[i].ToString());
+            if (args[i] != null)
+                text = text.Replace("{" + i + "}", args[i].ToString());
         return text;
     }
 

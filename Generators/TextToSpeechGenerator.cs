@@ -59,13 +59,21 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         }
     }
 
-    private async Task GenerateWithOpenAI(ChatNode node)
+    private async Task GenerateWithOpenAI(ChatNode node, int attempts = 0)
     {
-        var clip = await GetClipFromOpenAI(node.Say, node.Actor.Voice);
-        node.Frequency = clip.frequency;
-        node.AudioClip = clip;
+        try
+        {
+            var clip = await GetClipFromOpenAI(node.Say, node.Actor.Voice);
+            node.Frequency = clip.frequency;
+            node.AudioClip = clip;
 
-        node.New = true;
+            node.New = true;
+        }
+        catch (Exception e)
+        {
+            if (attempts < 5)
+                await GenerateWithOpenAI(node, attempts + 1);
+        }
     }
 
     private static async Task<HttpResponseMessage> RequestFromGoogle(string text, string voice)
