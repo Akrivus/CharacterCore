@@ -17,16 +17,17 @@ public class Actor : ScriptableObject
     public string Name;
     public string[] Aliases;
     public string[] Players;
+    public Actor Neighbor;
 
-    public string MapName;
     public bool IsLegacy;
-    public string Voice;
+
     public string ColorScheme;
     public string Costume;
 
     public TextAsset Prompt;
     public GameObject Prefab;
 
+    public string Voice;
     public float SpeakingRate;
     public float Pitch;
     public float Volume;

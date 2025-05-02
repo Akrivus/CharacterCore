@@ -41,9 +41,9 @@ public class Idea
         Slug = slug;
     }
 
-    public Idea RePrompt(TextAsset prompt)
+    public Idea RePrompt(TextAsset prompt, string preamble = "")
     {
-        Prompt = prompt.Format(Prompt);
+        Prompt = prompt.Format(preamble + "\n\n" + Prompt);
         return this;
     }
 }

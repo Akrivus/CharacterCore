@@ -19,6 +19,9 @@ public class SubtitlesUIManager : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI subtitleShadow;
 
+    [SerializeField]
+    private bool fadeOut = true;
+
     private float titleDuration = 5f;
     private float splashDuration = 2f;
     private string[] splashes;
@@ -67,28 +70,25 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private IEnumerator StartSplashScreen(Chat chat)
     {
-        if (ChatManager.Instance.RemoveActorsOnCompletion)
+        yield return FadeOut();
+        splashScreen.text = string.Empty;
+
+        if (splashes.Length > 0)
         {
-            splashScreen.text = string.Empty;
-            yield return FadeOut();
-
-            if (splashes.Length > 0)
-            {
-                splashScreen.text = splashes[Random.Range(0, splashes.Length)];
-                yield return FadeIn();
-
-                yield return new WaitForSeconds(splashDuration);
-                yield return FadeOut();
-            }
-
-            splashScreen.text = chat.Title;
+            splashScreen.text = splashes[Random.Range(0, splashes.Length)];
             yield return FadeIn();
+
+            yield return new WaitForSeconds(splashDuration);
+            yield return FadeOut();
         }
+
+        splashScreen.text = chat.Title;
+        yield return FadeIn();
 
         if (chat.Idea.Source.StartsWith("r/"))
             SetSubtitle(chat.Idea.Source, chat.Idea.Text);
 
-        if (ChatManager.Instance.RemoveActorsOnCompletion)
+        if (fadeOut)
         {
             yield return new WaitForSeconds(titleDuration);
             yield return FadeOut();

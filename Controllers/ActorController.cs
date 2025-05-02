@@ -7,7 +7,7 @@ public class ActorController : MonoBehaviour
 {
     public static float GlobalSpeakingRate = 1.0f;
 
-    public event Action<ChatNode> OnActivation;
+    public event Func<ChatNode, IEnumerator> OnActivation;
     public event Action<ActorController> OnActorUpdate;
     public event Action<Sentiment> OnSentimentUpdate;
 
@@ -108,7 +108,8 @@ public class ActorController : MonoBehaviour
     {
         yield return new WaitForSeconds(node.Delay);
 
-        OnActivation?.Invoke(node);
+        if (OnActivation != null)
+            yield return OnActivation(node);
         foreach (var subNode in sub_Nodes)
             subNode.Activate(node);
 

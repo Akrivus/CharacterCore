@@ -9,7 +9,7 @@ public class TitleCardGeneration : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(Chat chat)
     {
-        var text = await LLM.CompleteAsync(_prompt.Format(chat.Log, chat.Characters), true);
+        var text = await LLM.CompleteAsync(_prompt.Format(chat.Log, chat.Characters, chat.Idea.Text), true);
         chat.Title = text.Find("Title");
         chat.Synopsis = text.Find("Synopsis");
         return chat;

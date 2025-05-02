@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
 public static class StringExtensions
 {
-    private static readonly Regex actionRegex = new Regex(@"(?<![‘“""'])[*\[(]([^\]\)*]+)[\]*)](?!['""”’])");
+    private static readonly Regex quotedRegex = new Regex(@"([""“”].*?[""“”])", RegexOptions.Singleline);
+    private static readonly Regex actionRegex = new Regex(@"\*([^\*]+)\*", RegexOptions.Compiled);
     private static readonly Regex symbolRegex = new Regex(@"[\uD83C-\uDBFF\uDC00-\uDFFF]+|[^\w\s:;,.…!?\-—–+×÷=~“‘(""')’”#@&%$€¥£]");
     private static readonly Regex sentenceSplitter = new Regex(@"(?<=[.!?])(?![.!?'""”’])(?=\s+|\z)");
 
@@ -19,11 +21,37 @@ public static class StringExtensions
 
     public static string Scrub(this string str)
     {
-        var chr = str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSymbol(c)).ToArray();
-        str = string.Join("", chr);
-        str = actionRegex.Replace(str, string.Empty);
-        str = symbolRegex.Replace(str, string.Empty);
-        return str.Trim();
+        str = string.Join("", str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSymbol(c)).ToArray());
+
+        var matches = quotedRegex.Matches(str);
+        if (matches.Count > 0)
+        {
+            var quotes = new string[matches.Count];
+            for (var i = 0; i < matches.Count; ++i)
+                quotes[i] = matches[i].Groups[1].Value;
+            str = string.Join(" ", quotes);
+        }
+        else
+        {
+            matches = actionRegex.Matches(str);
+            foreach (Match match in matches)
+                str = str.Replace(match.Value, "");
+        }
+
+        return symbolRegex.Replace(str.Trim(), string.Empty);
+    }
+
+    public static string[] Rinse(this string str)
+    {
+        str = string.Join("", str.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || char.IsPunctuation(c) || char.IsSymbol(c)).ToArray());
+        str = quotedRegex.Replace(str, string.Empty);
+
+        var matches = actionRegex.Matches(str);
+        var actions = new string[matches.Count];
+
+        for (var i = 0; i < matches.Count; ++i)
+            actions[i] = matches[i].Groups[1].Value;
+        return actions;
     }
 
     public static string[] ToSentences(this string str)
@@ -37,13 +65,6 @@ public static class StringExtensions
         if (sentences.Length == 0)
             sentences = new string[] { str };   
         return sentences;
-    }
-
-    public static string[] Rinse(this string str)
-    {
-        return actionRegex.Matches(str)
-            .Select(match => match.Groups[2].Value)
-            .ToArray();
     }
 
     public static string[] FindAll(this string str, params string[] keys)

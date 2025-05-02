@@ -37,6 +37,9 @@ public class ChatManager : MonoBehaviour
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
 
     [SerializeField]
+    private AudioSource audioSource;
+
+    [SerializeField]
     private string forceEpisodeName;
 
     [SerializeField]
@@ -111,6 +114,8 @@ public class ChatManager : MonoBehaviour
         if (OnChatQueueTaken != null)
             yield return OnChatQueueTaken(chat);
 
+        PostChatTitleCard(chat);
+
         yield return InitChat(chat);
         yield return PlayChat(chat);
 
@@ -181,10 +186,10 @@ public class ChatManager : MonoBehaviour
         if (actor == null)
             actor = actors.First();
         yield return actor.Activate(node);
-        SetActorReactions(actor, node);
+        yield return SetActorReactions(actor, node);
     }
 
-    private void SetActorReactions(ActorController actor, ChatNode node)
+    private IEnumerator SetActorReactions(ActorController actor, ChatNode node)
     {
         var reactions = node.Reactions
             .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
@@ -195,6 +200,27 @@ public class ChatManager : MonoBehaviour
             reaction.Key.Sentiment = reaction.Value;
             reaction.Key.LookTarget = actor.LookObject.transform;
         }
+        yield return PlayReactionClip(node.Reactions);
+    }
+
+    private IEnumerator PlayReactionClip(ChatNode.Reaction[] reactions)
+    {
+        if (audioSource == null)
+            yield break;
+
+        var reaction = reactions
+            .GroupBy(r => r.Sentiment)
+            .OrderByDescending(r => r.Count())
+            .FirstOrDefault(r => r.Count() > 1)
+            ?.First()?.Sentiment;
+        if (reaction == null)
+            yield break;
+        var clip = reaction.Sound;
+        if (clip == null)
+            yield break;
+        audioSource.clip = clip;
+        audioSource.Play();
+        yield return new WaitForSeconds(clip.length);
     }
 
     private IEnumerator TryAddActor(Actor actor)
@@ -246,7 +272,7 @@ public class ChatManager : MonoBehaviour
     {
         var outgoing = actors.ToList();
         if (!RemoveActorsOnCompletion)
-            outgoing = actors.Where(a => !chat.Actors.Select(ac => ac.Reference).Contains(a.Actor)).ToList();
+            outgoing = actors.Except(chat.Actors.Select(ac => actors.Get(ac.Reference))).ToList();
         foreach (var actor in outgoing)
             yield return RemoveActor(actor);
     }
@@ -273,10 +299,23 @@ public class ChatManager : MonoBehaviour
                 string.Empty, null, null,
                 new DiscordEmbed
                 {
-                    Title = $"{actor.Costume} {actor.Name}'s Memory",
+                    Title = $"{actor.Costume} {actor.Name}",
                     Description = actor.Memory,
                     Color = actor.Reference.Color1.ToDiscordColor()
                 }));
         }
+    }
+
+    private void PostChatTitleCard(Chat chat)
+    {
+        if (chat.Title == null)
+            return;
+        DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
+            "# :clapper: Now Streaming!", null, null,
+            new DiscordEmbed
+            {
+                Title = chat.Title,
+                Description = chat.Synopsis
+            }));
     }
 }

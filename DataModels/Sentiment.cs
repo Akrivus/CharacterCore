@@ -16,4 +16,7 @@ public class Sentiment : ScriptableObject
     public Color Color;
     public Texture2D Eyes;
     public Texture2D Lips;
+
+    [Header("Audio")]
+    public AudioClip Sound;
 }

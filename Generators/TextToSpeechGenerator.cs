@@ -78,6 +78,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private static async Task<HttpResponseMessage> RequestFromGoogle(string text, string voice)
     {
+        Debug.Log("Requesting Google TTS: " + text);
         var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTS.GoogleApiKey}";
         var json = JsonConvert.SerializeObject(new Request(text, voice));
 
