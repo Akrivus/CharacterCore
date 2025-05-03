@@ -66,7 +66,7 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
     {
         var actor = actors.Find((a) => a.Aliases.Contains(name));
         if (actor == null)
-            FindNewActor(name, text, actors, out actor);
+            FindNewActor(name, actors, out actor);
         var nodes = new List<ChatNode>();
         if (actor == null)
             return nodes;
@@ -98,12 +98,11 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         return name.Split(" and ");
     }
 
-    private void FindNewActor(string name, string text, List<Actor> actors, out Actor actor)
+    private void FindNewActor(string name, List<Actor> actors, out Actor actor)
     {
         actor = Actor.All[name];
         if (actor != null)
             return;
-        actor = Actor.All["X"];
-        text = $"{name} posted: {text}";
+        actor = Actor.All["X"]; // X is a placeholder for unknown actors
     }
 }

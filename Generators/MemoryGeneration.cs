@@ -15,7 +15,7 @@ public class MemoryGeneration : MonoBehaviour, ISubGenerator
         {
             var bucket = await MemoryBucket.Get(actor.Name);
             var memory = await LLM.CompleteAsync(
-                _prompt.Format(chat.Log, actor.Prompt, bucket.Get()), fastMode);
+                _prompt.Format(chat.Log, actor.Prompt, bucket.Get(), actor.Context), fastMode);
             actor.Memory = memory;
             await bucket.Add(memory);
         }
